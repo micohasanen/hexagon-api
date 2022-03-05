@@ -26,8 +26,11 @@ app.get("/owned-by/:address", async (req, res) => {
   return res.send(tokens)
 })
 
+app.use('/healthcheck', require("./routes/healthcheck"))
 app.use('/collections', require("./routes/collections"))
 app.use('/c', require("./routes/collections"))
+app.use('/tokens', require("./routes/tokens"))
+app.use('/t', require("./routes/tokens"))
 
 app.listen(PORT, () => {
   require("./listeners/marketplace").default()

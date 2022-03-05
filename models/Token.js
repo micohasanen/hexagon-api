@@ -14,6 +14,9 @@ const TokenSchema = mongoose.Schema({
   metadata: {
     type: mongoose.Schema.Types.Mixed,
   },
+  tokenUri: {
+    type: String
+  },
   traits: {
     type: Array, 
     index: true

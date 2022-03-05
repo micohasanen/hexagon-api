@@ -3,6 +3,7 @@ const { Moralis } = require("../utils/Moralis")
 const ABI_ERC721 = require("../abis/ERC721.json")
 const { Provider, ethers } = require("../utils/provider")
 const TokenController = require("../controllers/TokenController")
+const { collection } = require("./Token")
 
 const CollectionSchema = mongoose.Schema({
   name: {

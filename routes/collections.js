@@ -85,7 +85,6 @@ router.post('/', async (req, res) => {
     })
 
     await collection.save()
-    collection.getAllTokens()
 
     return res.status(200).send(collection)
   } catch (error) {

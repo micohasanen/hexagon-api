@@ -30,6 +30,24 @@ exports.add = async (data) => {
   }
 }
 
+exports.update = async (data) => {
+  try {
+    if (!data.collectionId || !data.tokenId) throw new Error('Missing required data.')
+
+    const token = await Token.findOne({ collectionId: data.collectionId, tokenId: data.tokenId })
+    if (!token) throw new Error('Token not found')
+
+    Object.entries(data).forEach(([key, val]) => {
+      token[key] = val
+    })
+    await token.save()
+
+    return Promise.resolve(token)
+  } catch (error) {
+    return Promise.reject(error)
+  }
+}
+
 exports.logTransfer = async (data) => {
   try {
     console.log(data)
