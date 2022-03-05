@@ -50,12 +50,16 @@ exports.update = async (data) => {
 
 exports.logTransfer = async (data) => {
   try {
-    console.log(data)
-    const token = await Token.findOne({ collectionId: data.token_address, tokenId: data.token_id })
-    if (!token) throw new Error('No token found')
+    let token = await Token.findOne({ collectionId: data.tokenAddress, tokenId: data.tokenId })
+    if (!token) { 
+      console.log('Token Minted, creating new')
+      token = new Token() 
+      token.collectionId = data.tokenAddress
+      token.tokenId = data.tokenId
+    }
 
     if (!token.transfers) token.transfers = []
-    const exists = token.transfers.find((t) => t.transaction_hash === data.transaction_hash)
+    let exists = token.transfers.find((t) => t.signature === data.signature)
     if (exists) exists = data
     else token.transfers.push(data)
 

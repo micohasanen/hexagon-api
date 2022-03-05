@@ -1,15 +1,45 @@
-const ethers = require("ethers")
-const address = "0x59468516a8259058bad1ca5f8f4bff190d30e066"
-const abi = require("../abis/ERC721.json")
-// const { Provider } = require("../utils/provider")
+const ABI_ERC721 = require("../abis/ERC721.json")
+const { ETHProvider } = require("../utils/ETHProvider")
+const { Provider, currentChain } = require("../utils/Web3Provider")
 const { Moralis } = require("../utils/Moralis")
+const TransferController = require("../controllers/TransferController")
 
-module.exports = async () => {
+module.exports = async (collection) => {
   try {
-    const options = { address, chain: 'eth' }
-    // const transfers = await Moralis.Web3API.token.getContractNFTTransfers(options)
-    
-    
+    if (collection.chain === currentChain) {
+      const contract = new Provider.eth.Contract(ABI_ERC721, collection.address)
+
+      contract.events.Transfer({ fromBlock: 'latest' })
+      .on('data', (data) => {
+        console.log(data)
+      })
+
+      console.log("Setup Listener for", collection.name)
+    } 
+    /* 
+    else if (collection.chain === 'eth') {
+      const contract = new ETHProvider.eth.Contract(ABI_ERC721, collection.address)
+
+      const listener = contract.events.allEvents({
+        fromBlock: 0
+      })
+
+      listener.on('data', (data) => {
+       if (data.event === 'Transfer') {
+          delete data.signature
+          TransferController.add({ 
+            ...data, 
+            fromAddress: data.returnValues.from,
+            toAddress: data.returnValues.to,
+            tokenId: data.returnValues.tokenId,
+            tokenAddress: data.address 
+          })
+       }
+      })
+
+      console.log("Setup Listener for", collection.name)
+    }
+    */
   } catch (error) {
     console.error(error)
   }

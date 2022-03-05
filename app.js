@@ -5,6 +5,7 @@ const cors = require("cors")
 const mongoose = require("mongoose")
 const { Moralis } = require("./utils/Moralis")
 const PORT = process.env.PORT || 5000
+const Collection = require("./models/Collection")
 
 const app = express()
 app.use(cors())
@@ -31,9 +32,17 @@ app.use('/collections', require("./routes/collections"))
 app.use('/c', require("./routes/collections"))
 app.use('/tokens', require("./routes/tokens"))
 app.use('/t', require("./routes/tokens"))
+app.use('/auth', require("./routes/auth"))
 
 app.listen(PORT, () => {
+  // Setup listeners for marketplace events
   require("./listeners/marketplace").default()
-  // require("./listeners/collection")()
+
+  // Setup listeners for all whitelisted collections
+  Collection.find({ whitelisted: true }).then((docs) => {
+    docs.forEach((doc) => {
+      require("./listeners/collection")(doc)
+    })
+  })
   console.log(`Hive API listening on port ${PORT}`)
 })

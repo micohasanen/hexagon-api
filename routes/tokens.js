@@ -2,6 +2,7 @@ const router = require("express").Router()
 const Token = require("../models/Token")
 const Collection = require("../models/Collection")
 const { Moralis } = require("../utils/Moralis")
+const axios = require("axios")
 
 router.put("/:id/refresh-metadata", async (req, res) => {
   try {
@@ -17,9 +18,14 @@ router.put("/:id/refresh-metadata", async (req, res) => {
       address: collection.address, token_id: token.tokenId, chain: collection.chain
     })
 
-    if (data) {
+    if (data?.token_uri) {
       token.tokenUri = data.token_uri
-      token.metadata = JSON.parse(data.metadata)
+      const fetched = await axios.get(data.token_uri)
+
+      if (fetched.data) {
+        token.metadata = fetched.data
+      } else token.metadata = JSON.parse(data.metadata)
+
       await token.save()
     }
 

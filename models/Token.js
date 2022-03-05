@@ -1,8 +1,9 @@
 const mongoose = require("mongoose")
+const { Moralis } = require("../utils/Moralis")
 
 const TokenSchema = mongoose.Schema({
   tokenId: {
-    type: String,
+    type: Number,
     required: true,
     index: true
   },
@@ -11,6 +12,9 @@ const TokenSchema = mongoose.Schema({
     required: true,
     index: true
   },
+  name: String,
+  image: String,
+  description: String,
   metadata: {
     type: mongoose.Schema.Types.Mixed,
   },
@@ -26,9 +30,14 @@ const TokenSchema = mongoose.Schema({
 
 TokenSchema.pre('save', function (next) {
   this.collectionId = this.collectionId.toLowerCase()
-  if (this.metadata?.attributes) {
-    this.traits = this.metadata.attributes
+  this.tokenId = parseInt(this.tokenId)
+
+  if (this.metadata?.attributes) { 
+    this.traits = this.metadata.attributes 
   }
+  if (this.metadata?.name) this.name = this.metadata.name
+  if (this.metadata?.image) this.image = this.metadata.image
+  if (this.metadata?.description) this.description = this.metadata.description
   next()
 })
 

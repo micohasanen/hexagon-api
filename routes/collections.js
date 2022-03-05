@@ -5,6 +5,9 @@ const TransferController = require("../controllers/TransferController")
 const Token = require("../models/Token")
 const { currentChain } = require("../utils/Moralis")
 
+// Middleware
+const AdminOnly = require("../middleware/Auth_AdminOnly")
+
 router.get('/all', async (req, res) => {
   try {
     const collections = await Collection.find()
@@ -93,7 +96,7 @@ router.get('/:address/token/:tokenId', async (req, res) => {
 
 router.post('/', async (req, res) => {
   try {
-    if (!req.body || !req.body.name || !req.body.address) return res.status(400).json({ message: 'Missing required parameters.' })
+    if (!req.body?.address) return res.status(400).json({ message: 'Missing required parameters.' })
 
     const collection = new Collection()
     Object.entries(req.body).forEach(([key, val]) => {
@@ -109,19 +112,25 @@ router.post('/', async (req, res) => {
   }
 })
 
-router.post("/:address/sync-tokens", async (req, res) => {
+router.post("/:address/save", async (req, res) => {
+  const collection = await Collection.findOne({ address: req.params.address })
+  await collection.save()
+  return res.send(collection)
+})
+
+router.post("/:address/sync-tokens", [AdminOnly], async (req, res) => {
   const collection = await Collection.findOne({ address: req.params.address })
   collection.getAllTokens()
   return res.sendStatus(200)
 })
 
-router.post("/:address/generate-attributes", async (req, res) => {
+router.post("/:address/generate-attributes", [AdminOnly], async (req, res) => {
   const collection = await Collection.findOne({ address: req.params.address })
   collection.generateAttributes()
   return res.sendStatus(200)
 })
 
-router.post("/:address/sync-transfers", async (req, res) => {
+router.post("/:address/sync-transfers", [AdminOnly], async (req, res) => {
   TransferController.syncCollectionTransfers(req.params.address)
   return res.status(200).json({ message: 'Syncing started.' })
 })

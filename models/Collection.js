@@ -1,9 +1,9 @@
 const mongoose = require("mongoose")
 const { Moralis } = require("../utils/Moralis")
-const ABI_ERC721 = require("../abis/ERC721.json")
-const { Provider, ethers } = require("../utils/provider")
 const TokenController = require("../controllers/TokenController")
 const { collection } = require("./Token")
+const ABI_ERC721 = require("../abis/ERC721.json")
+const { Provider } = require("../utils/Web3Provider")
 
 const CollectionSchema = mongoose.Schema({
   name: {
@@ -22,7 +22,8 @@ const CollectionSchema = mongoose.Schema({
   },
   slug: {
     type: String,
-    index: true
+    index: true,
+    unique: true
   },
   description: String,
   images: {
@@ -45,7 +46,26 @@ const CollectionSchema = mongoose.Schema({
 
 CollectionSchema.pre('save', async function (next) {
   this.address = this.address.toLowerCase()
+  try {
+    const contract = new Provider.eth.Contract(ABI_ERC721, this.address)
+
+    if (!this.name || this.name === 'WhitelistedCollection') {
+      const name = await contract.methods.name().call()
+      this.name = name
+    }
+    if (!this.symbol) {
+      const symbol = await contract.methods.symbol().call()
+      this.symbol = symbol
+    } 
+    if (!this.totalSupply) {
+      const supply = await contract.methods.totalSupply().call()
+      this.totalSupply = supply
+    }
+
   next()
+  } catch (error) {
+    next()
+  }
 })
 
 CollectionSchema.post('save', function () {
@@ -53,7 +73,6 @@ CollectionSchema.post('save', function () {
     this.getAllTokens()
   }
 })
-
 
 CollectionSchema.methods.getAllTokens = async function () {
   try {
@@ -67,6 +86,7 @@ CollectionSchema.methods.getAllTokens = async function () {
       })
 
       total = parseInt(tokenData.total)
+      if (!total) return
       console.log({ total, i })
 
       for (const token of tokenData.result) {
@@ -81,6 +101,11 @@ CollectionSchema.methods.getAllTokens = async function () {
       }
     }
 
+    if (!this.totalSupply) {
+      this.totalSupply = total
+      this.save()
+    }
+
     this.generateAttributes()
   } catch (error) {
     throw new Error(error)
@@ -89,17 +114,19 @@ CollectionSchema.methods.getAllTokens = async function () {
 
 CollectionSchema.methods.generateAttributes = async function () {
   try {
+    console.log('Started attribute generation')
     const tokens = await TokenController.getAllForCollection(this.address)
-    tokens.forEach(token => {
-      if (!token.metadata || !token.metadata.attributes) return
-      token.metadata.attributes.forEach(attr => {
+    if (tokens.length) this.traits = []
+
+    tokens.forEach((token, index) => {
+      if (!token.traits?.length) return
+      for (const attr of token.traits) {
         let traitType = 'default'
         let value = ''
         if (attr.trait_type) traitType = attr.trait_type // This is done to support some legacy collections, such as cryptopunks
         if (attr.value) value = attr.value // They don't have the standard trait_type & value schema
         else value = attr
 
-        if (!this.traits) this.traits = []
         let trait = this.traits.find((t) => t.type === traitType)
 
         if (!trait) { 
@@ -116,10 +143,10 @@ CollectionSchema.methods.generateAttributes = async function () {
           trait.traitAmount += 1
           trait.attributes.push({ value, amount: 1 })
         }
-      }) 
-    })
+      }
 
-    await this.save()
+      if (index === tokens.length - 1) this.save()
+    })
   } catch (error) {
     throw new Error(error)
   }

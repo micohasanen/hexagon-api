@@ -2,32 +2,35 @@ const mongoose = require("mongoose")
 const TokenController = require("../controllers/TokenController")
 
 const TransferSchema = mongoose.Schema({
-  block_timestamp: String,
-  contract_type: String,
-  transaction_type: String,
+  blockTimestamp: String,
+  contractType: String,
+  transactionType: String,
   value: String,
   amount: String,
-  transaction_hash: {
-    type: String,
-    unique: true,
-    index: true
+  transactionHash: {
+    type: String
   },
-  token_address: {
+  tokenAddress: {
     type: String,
     required: true,
     index: true
   },
-  from_address: String,
-  to_address: String,
-  token_id: {
+  fromAddress: String,
+  toAddress: String,
+  tokenId: {
     type: String,
     required: true,
     index: true
+  },
+  signature: {
+    type: String,
+    index: true,
+    unique: true
   }
 }, { timestamps: true })
 
 TransferSchema.pre('save', function(next) {
-  this.token_address = this.token_address.toLowerCase()
+  this.token_address = this.tokenAddress.toLowerCase()
   next()
 })
 
