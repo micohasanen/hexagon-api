@@ -3,10 +3,26 @@ const Collection = require("../models/Collection")
 const TokenController = require("../controllers/TokenController")
 const TransferController = require("../controllers/TransferController")
 const Token = require("../models/Token")
+const { currentChain } = require("../utils/Moralis")
+
+router.get('/all', async (req, res) => {
+  try {
+    const collections = await Collection.find()
+    return res.status(200).send(collections)
+  } catch (error) {
+    return res.status(500).json({ message: 'Something went wrong.', error })
+  }
+})
 
 router.get('/', async (req, res) => {
   try {
-    const collections = await Collection.find()
+    const page = req.query.page || 0
+    let size = req.query.size || 20
+    const sort = req.query.sort || 'name'
+    const chain = req.query.chain || currentChain
+    if (size > 50) size = 50
+
+    const collections = await Collection.find({ chain, whitelisted: true }).sort(sort).skip(page * size).limit(size).exec()
     return res.status(200).send(collections)
   } catch (error) {
     return res.status(500).json({ message: 'Something went wrong.', error })
