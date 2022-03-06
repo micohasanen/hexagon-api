@@ -44,5 +44,9 @@ app.listen(PORT, () => {
       require("./listeners/collection")(doc)
     })
   })
+
+  // Setup Queue Workers
+  require("./queue/Worker")()
+  
   console.log(`Hive API listening on port ${PORT}`)
 })

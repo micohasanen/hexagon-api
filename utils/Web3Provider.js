@@ -9,5 +9,6 @@ const Provider = new Web3(new Web3.providers.WebsocketProvider(RPC,
     } 
   }
 ))
+Provider.eth.handleRevert = true
 
 module.exports = { Provider, Web3, currentChain }

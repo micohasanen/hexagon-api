@@ -1,8 +1,8 @@
 const Transfer = require("../models/Transfer")
 const Collection = require("../models/Collection")
 const { Moralis } = require("../utils/Moralis")
-const { Provider } = require("../utils/Web3Provider")
-const ERC721 = require("../abis/ERC721.json")
+const { addTransfer } = require("../queue/Queue")
+
 const crypto = require("crypto")
 
 const snakeToCamel = str =>
@@ -42,11 +42,11 @@ exports.syncCollectionTransfers = async (address) => {
       console.log({ total, i })
     
       for (const result of transfers.result) {
-        const formatted = {}
+        const formatted = { chain: collection.chain }
         Object.entries(result).forEach(([key, val]) => {
           formatted[snakeToCamel(key)] = val
         })
-        this.add(formatted)
+        addTransfer(formatted)
       }
     }
 
@@ -57,19 +57,27 @@ exports.syncCollectionTransfers = async (address) => {
 }
 
 exports.add = async (data) => {
-  const hash = crypto.createHash('sha256')
-  .update(`${data.blockTimestamp || data.blockNumber}${data.fromAddress}${data.toAddress}${data.tokenId}`)
-  .digest('hex')
+  try {
+    const hash = crypto.createHash('sha256')
+    .update(`${data.blockNumber}${data.fromAddress}${data.toAddress}${data.tokenId}`)
+    .digest('hex')
 
-  console.log(hash)
+    console.log(hash)
 
-  const exists = await Transfer.exists({ signature: hash })
-  if (!exists) {
-    const transfer = new Transfer()
-    transfer.signature = hash
-    Object.entries(data).forEach(([key, val]) => {
-      transfer[key] = val
-    })
-    await transfer.save()
+    const exists = await Transfer.exists({ signature: hash })
+    if (!exists) {
+      const transfer = new Transfer()
+      transfer.signature = hash
+      Object.entries(data).forEach(([key, val]) => {
+        transfer[key] = val
+      })
+      await transfer.save()
+      return Promise.resolve()
+    } else {
+      return Promise.resolve()
+    }
+  } catch (error) {
+    console.log(error)
+    return Promise.reject(error)
   }
 }

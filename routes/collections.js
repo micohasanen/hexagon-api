@@ -1,12 +1,14 @@
 const router = require("express").Router()
 const Collection = require("../models/Collection")
+const Token = require("../models/Token")
 const TokenController = require("../controllers/TokenController")
 const TransferController = require("../controllers/TransferController")
-const Token = require("../models/Token")
-const { currentChain } = require("../utils/Moralis")
+const CollectionController = require("../controllers/CollectionController")
+const { addMetadata } = require("../queue/Queue")
 
 // Middleware
 const AdminOnly = require("../middleware/Auth_AdminOnly")
+const OnlyOwner = require("../middleware/Auth_OwnerOnly")
 
 router.get('/all', async (req, res) => {
   try {
@@ -22,7 +24,7 @@ router.get('/', async (req, res) => {
     const page = req.query.page || 0
     let size = req.query.size || 20
     const sort = req.query.sort || 'name'
-    const chain = req.query.chain || currentChain
+    const chain = req.query.chain
     if (size > 50) size = 50
 
     const collections = await Collection.find({ chain, whitelisted: true }).sort(sort).skip(page * size).limit(size).exec()
@@ -112,6 +114,38 @@ router.post('/', async (req, res) => {
   }
 })
 
+router.put("/:address", async (req, res) => {
+  try {
+    if (!req.body) return res.status(400).json({ message: 'No request body.' })
+
+    const collection = await Collection.findOne({ address: req.params.address })
+    if (!collection) return res.status(404).json({ message: 'No collection found.' })
+
+    if (req.body.traits) delete req.body.traits
+
+    Object.entries(req.body).forEach(([key, val]) => {
+      collection[key] = val
+    })
+
+    await collection.save()
+    return res.status(200).send(collection)
+  } catch (error) {
+    return res.status(500).json({ message: 'Something went wrong.', error })
+  }
+})
+
+router.put("/:address/batch-reveal", [OnlyOwner], async (req, res) => {
+  try {
+    const ids = await Token.find({ collectionId: req.collection.address }).distinct('_id')
+    for (const id of ids) {
+      addMetadata(id)
+    }
+    return res.status(200).json({ message: 'Reveal started successfully.' })
+  } catch (error) {
+    return res.status(500).json({ message: 'Something went wrong.', error })
+  }
+})
+
 router.post("/:address/save", async (req, res) => {
   const collection = await Collection.findOne({ address: req.params.address })
   await collection.save()
@@ -125,9 +159,8 @@ router.post("/:address/sync-tokens", [AdminOnly], async (req, res) => {
 })
 
 router.post("/:address/generate-attributes", [AdminOnly], async (req, res) => {
-  const collection = await Collection.findOne({ address: req.params.address })
-  collection.generateAttributes()
-  return res.sendStatus(200)
+  CollectionController.generateRarity(req.params.address)
+  return res.status(200).json({ message: 'Rarity generation started successfully.' })
 })
 
 router.post("/:address/sync-transfers", [AdminOnly], async (req, res) => {

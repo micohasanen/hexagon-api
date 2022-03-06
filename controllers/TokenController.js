@@ -1,4 +1,7 @@
+const axios = require("axios")
 const Token = require("../models/Token")
+const GetProvider = require("../utils/ChainProvider")
+const ABI_ERC721 = require("../abis/ERC721.json")
 
 exports.getAllForCollection = async (collectionId) => {
   try {
@@ -22,6 +25,15 @@ exports.add = async (data) => {
     Object.entries(data).forEach(([key, val]) => {
       token[key] = val
     })
+
+    if (token.tokenUri) {
+      const fetched = await axios.get(token.tokenUri)
+
+      if (fetched.data) {
+        token.metadata = fetched.data
+      }
+    }
+
     await token.save()
 
     return Promise.resolve(token)
@@ -48,9 +60,40 @@ exports.update = async (data) => {
   }
 }
 
+exports.refreshMetadata = async function (id) {
+ try {
+    if (!id) throw new Error('Missing required data.')
+
+    const token = await Token.findOne({ _id: id }).populate('tokenCollection').exec()
+    if (!token || !token.tokenCollection) throw new Error('No token found.')
+
+    const { Provider } = GetProvider(token.tokenCollection.chain)
+    const contract = new Provider.eth.Contract(ABI_ERC721, token.collectionId)
+
+    let tokenUri = await contract.methods.tokenURI(token.tokenId).call()
+    if (tokenUri.startsWith('ipfs://')) tokenUri = tokenUri.replace('ipfs://', "https://gateway.ipfs.io/ipfs/")
+
+    console.log('Refreshing metadata for token', token.tokenId)
+
+    if (tokenUri) {
+      token.tokenUri = tokenUri
+      const fetched = await axios.get(tokenUri)
+
+      if (fetched.data) {
+        token.metadata = fetched.data
+        await token.save()
+      }
+    }
+
+    return Promise.resolve(token)
+ } catch (error) {
+    return Promise.reject(error)
+  }
+}
+
 exports.logTransfer = async (data) => {
   try {
-    let token = await Token.findOne({ collectionId: data.tokenAddress, tokenId: data.tokenId })
+    let token = await Token.findOne({ collectionId: data.tokenAddress.toLowerCase(), tokenId: data.tokenId })
     if (!token) { 
       console.log('Token Minted, creating new')
       token = new Token() 

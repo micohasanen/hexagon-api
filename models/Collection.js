@@ -1,9 +1,9 @@
 const mongoose = require("mongoose")
 const { Moralis } = require("../utils/Moralis")
 const TokenController = require("../controllers/TokenController")
-const { collection } = require("./Token")
+const CollectionController = require("../controllers/CollectionController")
 const ABI_ERC721 = require("../abis/ERC721.json")
-const { Provider } = require("../utils/Web3Provider")
+const GetProvider = require("../utils/ChainProvider")
 
 const CollectionSchema = mongoose.Schema({
   name: {
@@ -40,29 +40,48 @@ const CollectionSchema = mongoose.Schema({
   pending: Boolean,
   verified: Boolean,
   socials: Array,
-  traits: Array
+  traits: Array,
+  owner: String
 }, { timestamps: true })
+
+function hasMethod(code, signature) {
+  return code.indexOf(signature.slice(2, signature.length)) > 0
+}
 
 
 CollectionSchema.pre('save', async function (next) {
   this.address = this.address.toLowerCase()
+
   try {
+    const { Provider } = GetProvider(this.chain)
     const contract = new Provider.eth.Contract(ABI_ERC721, this.address)
+    
+    const code = await Provider.eth.getCode(this.address)
 
     if (!this.name || this.name === 'WhitelistedCollection') {
-      const name = await contract.methods.name().call()
-      this.name = name
+      this.name = await contract.methods.name().call()
     }
     if (!this.symbol) {
-      const symbol = await contract.methods.symbol().call()
-      this.symbol = symbol
+      this.symbol = await contract.methods.symbol().call()
     } 
     if (!this.totalSupply) {
-      const supply = await contract.methods.totalSupply().call()
-      this.totalSupply = supply
+      // We are checking if the contract has a totalSupply method, otherwise we'll get an error
+      const methodABI = contract.methods.totalSupply().encodeABI()
+      if(hasMethod(code, methodABI)) {
+        console.log('Getting collection supply')
+        this.totalSupply = await contract.methods.totalSupply().call()
+      }
+    }
+    if (!this.owner) {
+      // We are checking if the contract has an owner method before adding the owner
+      const methodABI = contract.methods.owner().encodeABI()
+      if(hasMethod(code, methodABI)) {
+        console.log('Getting collection owner')
+        this.owner = await contract.methods.owner().call()
+      }
     }
 
-  next()
+    next()
   } catch (error) {
     next()
   }
@@ -106,50 +125,11 @@ CollectionSchema.methods.getAllTokens = async function () {
       this.save()
     }
 
-    this.generateAttributes()
+    CollectionController.generateRarity(this.address)
   } catch (error) {
     throw new Error(error)
   }
 }
 
-CollectionSchema.methods.generateAttributes = async function () {
-  try {
-    console.log('Started attribute generation')
-    const tokens = await TokenController.getAllForCollection(this.address)
-    if (tokens.length) this.traits = []
-
-    tokens.forEach((token, index) => {
-      if (!token.traits?.length) return
-      for (const attr of token.traits) {
-        let traitType = 'default'
-        let value = ''
-        if (attr.trait_type) traitType = attr.trait_type // This is done to support some legacy collections, such as cryptopunks
-        if (attr.value) value = attr.value // They don't have the standard trait_type & value schema
-        else value = attr
-
-        let trait = this.traits.find((t) => t.type === traitType)
-
-        if (!trait) { 
-          this.traits.push({ type: traitType, attributes: [], traitAmount: 0 }) 
-          trait = this.traits[this.traits.length - 1]
-        }
-
-        const attribute = trait.attributes.find(a => a.value === value)
-        if (attribute) { 
-          trait.traitAmount += 1
-          attribute.amount += 1 
-        }
-        else {
-          trait.traitAmount += 1
-          trait.attributes.push({ value, amount: 1 })
-        }
-      }
-
-      if (index === tokens.length - 1) this.save()
-    })
-  } catch (error) {
-    throw new Error(error)
-  }
-}
-
-module.exports = mongoose.model('Collection', CollectionSchema)
+const Collection = mongoose.model('Collection', CollectionSchema)
+module.exports = Collection
