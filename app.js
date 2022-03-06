@@ -1,16 +1,21 @@
 require("dotenv").config()
+const PORT = process.env.PORT || 5000
 
 const express = require("express")
 const cors = require("cors")
 const mongoose = require("mongoose")
+const morgan = require("morgan")
+const helmet = require("helmet")
+
 const { Moralis } = require("./utils/Moralis")
-const PORT = process.env.PORT || 5000
 const Collection = require("./models/Collection")
 
 const app = express()
 app.use(cors())
 app.use(express.json())
 app.use(express.urlencoded({ extended: true }))
+app.use(helmet())
+app.use(morgan('dev'))
 
 mongoose.connect(
   `mongodb+srv://${process.env.MONGO_USER}:${process.env.MONGO_PASS}@${process.env.MONGO_URL}/${process.env.MONGO_DB_NAME}?retryWrites=true&w=majority`)
@@ -47,6 +52,6 @@ app.listen(PORT, () => {
 
   // Setup Queue Workers
   require("./queue/Worker")()
-  
+
   console.log(`Hive API listening on port ${PORT}`)
 })
