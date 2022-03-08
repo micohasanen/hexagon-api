@@ -53,18 +53,19 @@ router.post('/:address/tokens', async (req, res) => {
 
   if (pageSize > 50) pageSize = 50
 
-  if (req.body && req.body.traits?.length) {
+  if (req.body?.traits?.length) {
     page = 0
     const values = []
-    const types = []
+    const types = new Set()
+    const elemMatches = []
     for (const trait of req.body.traits) {
       values.push(trait.value)
-      types.push(trait.trait_type)
+      types.add(trait.trait_type)
+      elemMatches.push({ $elemMatch: trait })
     }
 
-    findQuery.traits = { $elemMatch: { value: {}, trait_type: {} } }
-    findQuery.traits.$elemMatch.value.$in = values
-    findQuery.traits.$elemMatch.trait_type.$in = types
+    if ([...types].length === 1) findQuery.traits = { $elemMatch: { value: { $in: values }, trait_type: { $in: [...types] } } }
+    else if ([...types].length > 1) findQuery.traits = { $all: elemMatches }
   }
   
   const tokens = await Token
