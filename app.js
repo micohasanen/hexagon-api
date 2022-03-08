@@ -38,6 +38,7 @@ app.use('/c', require("./routes/collections"))
 app.use('/tokens', require("./routes/tokens"))
 app.use('/t', require("./routes/tokens"))
 app.use('/auth', require("./routes/auth"))
+app.use('/listings', require("./routes/listings"))
 
 app.listen(PORT, () => {
   // Setup listeners for marketplace events

@@ -17,6 +17,6 @@ module.exports = async (req, res, next) => {
   
     next()
   } catch (err) {
-    return res.status(401).json({ message: 'Unauthorized: Unexpected error.' })
+    return res.status(401).json({ message: 'Unauthorized.' })
   }
 }

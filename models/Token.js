@@ -29,12 +29,20 @@ const TokenSchema = mongoose.Schema({
   },
   rarity: Number,
   rarityRank: Number,
-  transfers: Array
-}, { timestamps: true, toObject: { virtuals: true } })
+  transfers: Array,
+  listings: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Listing' }],
+  highestPrice: {
+    type: Number,
+    default: 0
+  },
+  lowestPrice: {
+    type: Number,
+    default: 0
+  }
+}, { timestamps: true, toObject: { virtuals: true }, toJSON: { virtuals: true } })
 
 TokenSchema.pre('save', function (next) {
   this.collectionId = this.collectionId.toLowerCase()
-  this.tokenId = parseInt(this.tokenId)
 
   if (this.metadata?.attributes) { 
     this.traits = this.metadata.attributes 

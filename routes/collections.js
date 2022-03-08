@@ -48,20 +48,23 @@ router.get('/:address', async (req, res) => {
 router.post('/:address/tokens', async (req, res) => {
   let page = req.query.page || 0
   let pageSize = req.query.size || 20
-  const sort = req.query.sort || 'tokenId'
+  let sort = req.query.sort || 'tokenId'
   let findQuery = { collectionId: req.params.address }
 
   if (pageSize > 50) pageSize = 50
 
   if (req.body && req.body.traits?.length) {
     page = 0
-    const all = []
+    const values = []
+    const types = []
     for (const trait of req.body.traits) {
-      all.push(trait)
+      values.push(trait.value)
+      types.push(trait.trait_type)
     }
 
-    findQuery.traits = {}
-    findQuery.traits.$all = all
+    findQuery.traits = { $elemMatch: { value: {}, trait_type: {} } }
+    findQuery.traits.$elemMatch.value.$in = values
+    findQuery.traits.$elemMatch.trait_type.$in = types
   }
   
   const tokens = await Token
@@ -69,6 +72,7 @@ router.post('/:address/tokens', async (req, res) => {
     .sort(sort)
     .skip(page * pageSize)
     .limit(pageSize)
+    .populate('listings')
     .exec()
   
   return res.status(200).send(tokens)
@@ -87,7 +91,7 @@ router.get('/:address/tokens/all', async (req, res) => {
 router.get('/:address/token/:tokenId', async (req, res) => {
   try {
     if (!req.params?.address || !req.params.tokenId) return res.status(400).json({ message: 'Missing required url parameters.' })
-    const token = await Token.findOne({ collectionId: req.params.address, tokenId: req.params.tokenId })
+    const token = await Token.findOne({ collectionId: req.params.address, tokenId: req.params.tokenId }).populate('listings').exec()
     if (!token) return res.status(404).json({ message: 'No token found.' })
 
     return res.status(200).send(token)

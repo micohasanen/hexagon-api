@@ -40,7 +40,7 @@ TransferSchema.pre('save', async function(next) {
     if (this.chain) {
       const { Provider } = GetProvider(this.chain)
       const details = await Provider.eth.getBlock(this.blockNumber)
-      this.blockTimestamp = new Date(details.timestamp * 1000).toISOString()
+      if (details) this.blockTimestamp = new Date(details.timestamp * 1000).toISOString()
     }
   }
 
