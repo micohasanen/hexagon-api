@@ -27,4 +27,14 @@ module.exports = () => {
     await CollectionController.generateRarity(job.data)
     return true
   }, { connection: config.redisConnection })
+
+  // Events from Marketplace
+
+  const listingWorker = new Worker('listings', async (job) => {
+    if (job.data.eventType === 'accepted') {
+
+    } else if (job.data.eventType === 'canceled') {
+      
+    }
+  }, { connection: config.redisConnection })
 }

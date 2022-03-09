@@ -43,6 +43,10 @@ const TokenSchema = mongoose.Schema({
     type: Number,
     default: 0
   },
+  lowestBid: {
+    type: Number,
+    default: 0
+  },
   highestBidder: {
     type: String,
     lowercase: true,

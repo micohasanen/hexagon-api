@@ -11,6 +11,16 @@ const CHECKER_ERC1155 = "0x4e1273f4"
 const ABI_ERC721 = require("../abis/ERC721.json")
 const ABI_ERC1155 = require("../abis/ERC1155.json")
 
+function hasMethod(code, signature) {
+  return code.indexOf(signature.slice(2, signature.length)) > 0
+}
+
+function getContractType (bytecode) {
+  if (hasMethod(bytecode, CHECKER_ERC721)) return 'ERC721'
+  else if (hasMethod(bytecode, CHECKER_ERC1155)) return 'ERC1155'
+  else return null
+}
+
 exports.getAllForCollection = async (collectionId) => {
   try {
     if (!collectionId) throw new Error('Missing Collection Address')
@@ -20,10 +30,6 @@ exports.getAllForCollection = async (collectionId) => {
   } catch (error) {
     return Promise.reject(error)
   }
-}
-
-function hasMethod(code, signature) {
-  return code.indexOf(signature.slice(2, signature.length)) > 0
 }
 
 exports.isOwnerOfToken = async (collectionAddress, userAddress, tokenId, qty) => {
@@ -39,14 +45,14 @@ exports.isOwnerOfToken = async (collectionAddress, userAddress, tokenId, qty) =>
       const contract = new Provider.eth.Contract(ABI_ERC721, collectionAddress)
       const currentOwner = await contract.methods.ownerOf(tokenId).call()
 
-      if (currentOwner.toLowerCase() === userAddress.toLowerCase()) return { owner: currentOwner, status: true }
-      return { owner: '', status: false }
+      if (currentOwner.toLowerCase() === userAddress.toLowerCase()) return { owner: currentOwner, status: true, contractType: 'ERC721' }
+      return { owner: '', status: false, contractType: 'ERC721' }
     } else if (hasMethod(code, CHECKER_ERC1155)) { // Is an ERC1155 Contract
       const contract = new Provider.eth.Contract(ABI_ERC1155, collectionAddress)
       const tokenBalance = await contract.methods.balanceOf(userAddress, tokenId).call()
       
       if (parseInt(tokenBalance) < qty) return { owner: '', status: false }
-      return { owner: userAddress, status: true }
+      return { owner: userAddress, status: true, contractType: 'ERC1155' }
     }
 
   } catch (error) {
@@ -102,6 +108,10 @@ exports.refreshMetadata = async function (id) {
     const { Provider } = GetProvider(token.tokenCollection.chain)
     let tokenUri = ''
 
+    if (!token.contractType) {
+      token.contractType = getContractType(Provider.eth.getCode(token.collectionId))
+    }
+
     if (token.contractType === 'ERC721') {
       const contract = new Provider.eth.Contract(ABI_ERC721, token.collectionId)
       tokenUri = await contract.methods.tokenURI(token.tokenId).call()
@@ -131,13 +141,14 @@ exports.refreshMetadata = async function (id) {
           token.traits.forEach((trait) => {
             if (!token.tokenCollection.traits?.length) return
             const type = token.tokenCollection.traits.find((t) => t.type === trait.trait_type)
-            const { rarityPercent, rarityScore, rarityRank } = type.attributes.find((a) => a.value === trait.value)
+            const attr = type.attributes.find((a) => a.value === trait.value)
 
-            trait.rarityPercent = rarityPercent
-            trait.rarityScore = rarityScore
-            trait.rarityRank = rarityRank
+            if (!attr) return
+            trait.rarityPercent = attr.rarityPercent
+            trait.rarityScore = attr.rarityScore
+            trait.rarityRank = attr.rarityRank
 
-            totalRarity += rarityScore
+            totalRarity += attr.rarityScore
           })
 
           token.rarity = totalRarity
@@ -235,5 +246,26 @@ exports.removeListing = async (data) => {
 }
 
 exports.addBid = async (data) => {
-  console.log(data)
+  try {
+    const token = await Token.findOne({ collectionId: data.collectionId, tokenId: data.tokenId }).populate('bids').exec()
+    if (!token) throw new Error('No token found')
+
+    const exists = token.bids.find((b) => b._id.toString() === data._id.toString())
+    if (!exists) token.bids.push(data)
+
+    const prices = token.bids.map(b => b.pricePerItem)
+    const calc = getHighestAndLowestPrice(prices)
+
+    if (data.pricePerItem > token.highestBid) token.highestBidder = data.userAddress
+    if (!calc.highestPrice && !calc.lowestPrice) token.highestBidder = ''
+    token.highestBid = calc.highestPrice
+    token.lowestBid = calc.lowestPrice
+
+    token.markModified('bids')
+    await token.save()
+
+    return Promise.resolve(token)
+  } catch (error) {
+    return Promise.reject(error)
+  }
 }

@@ -16,11 +16,11 @@ router.post("/", async (req, res) => {
     const address = req.body.contractAddress || req.body.collectionId
     const userAddress = req.body.userAddress || req.body.owner
 
-    if (!req.body?.tokenId || !address) return res.status(400).json({ message: 'Missing required data in requst body.' })
+    if (!address || !userAddress) return res.status(400).json({ message: 'Missing required data in requst body.' })
 
-    const collection = await Collection.findOne({ address })
-    const tokenExists = await Token.exists({ collectionId: address, tokenId: req.body.tokenId })
-    if (!collection || !tokenExists) return res.status(400).json({ message: 'Invalid token or collection ID.'})
+    const collection = await Collection.findOne({ address: address.toLowerCase() })
+    const token = await Token.findOne({ collectionId: address, tokenId: req.body.tokenId })
+    if (!collection || !token) return res.status(400).json({ message: 'Invalid token or collection ID.'})
 
     const isTokenOwner = await TokenController.isOwnerOfToken(address, userAddress, req.body.tokenId, req.body.quantity)
 
@@ -28,9 +28,13 @@ router.post("/", async (req, res) => {
       return res.status(401).json({ message: 'Not the token owner.'})
     }
 
+    if (isTokenOwner.contractType === 'ERC721' && token.listings.length) {
+      return res.status(401).json({ message: 'Only one listing allowed at the same time.'})
+    }
+
     const listing = new Listing({...req.body, chain: collection.chain })
     listing.active = true
-    // await listing.save()
+    await listing.save() // -> After Save, updates to token listings
 
     return res.status(200).send(listing)
   } catch (error) {

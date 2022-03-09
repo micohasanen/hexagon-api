@@ -7,8 +7,6 @@ const mongoose = require("mongoose")
 const morgan = require("morgan")
 const helmet = require("helmet")
 
-const { Moralis } = require("./utils/Moralis")
-
 const app = express()
 app.use(cors())
 app.use(express.json())
@@ -23,14 +21,6 @@ app.get("/", (req, res) => {
   return res.send('Hive API')
 })
 
-app.get("/owned-by/:address", async (req, res) => {
-  const options = {
-    address: req.params.address
-  }
-  const tokens = await Moralis.Web3API.account.getNFTs(options)
-  return res.send(tokens)
-})
-
 app.use('/healthcheck', require("./routes/healthcheck"))
 app.use('/collections', require("./routes/collections"))
 app.use('/c', require("./routes/collections"))
@@ -38,6 +28,8 @@ app.use('/tokens', require("./routes/tokens"))
 app.use('/t', require("./routes/tokens"))
 app.use('/auth', require("./routes/auth"))
 app.use('/listings', require("./routes/listings"))
+app.use('/bids', require("./routes/bids"))
+app.use('/users', require("./routes/users"))
 
 app.listen(PORT, () => {
   // Setup Queue Workers

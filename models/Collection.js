@@ -46,7 +46,17 @@ const CollectionSchema = mongoose.Schema({
     lowercase: true,
     trim: true
   },
-  contractType: String
+  contractType: String,
+  currency: {
+    contract: {
+      type: String,
+      lowercase: true,
+      trim: true
+    },
+    symbol: String,
+    name: String,
+    decimals: Number
+  }
 }, { timestamps: true })
 
 function hasMethod(code, signature) {

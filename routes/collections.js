@@ -100,7 +100,6 @@ router.post('/:address/tokens', async (req, res) => {
     .sort(sort)
     .skip(page * size)
     .limit(size)
-    .populate('listings')
     .exec()
   
   return res.status(200).json({ 
@@ -126,7 +125,11 @@ router.get('/:address/tokens/all', async (req, res) => {
 router.get('/:address/token/:tokenId', async (req, res) => {
   try {
     if (!req.params?.address || !req.params.tokenId) return res.status(400).json({ message: 'Missing required url parameters.' })
-    const token = await Token.findOne({ collectionId: req.params.address, tokenId: req.params.tokenId }).populate('listings').exec()
+    const token = await Token.findOne({ collectionId: req.params.address, tokenId: req.params.tokenId })
+                        .populate('listings')
+                        .populate('bids')
+                        .populate('transfers')
+                        .exec()
     if (!token) return res.status(404).json({ message: 'No token found.' })
 
     return res.status(200).send(token)

@@ -9,10 +9,10 @@ const BidSchema = mongoose.Schema({
     lowercase: true,
     trim: true
   },
-  owner: {
+  userAddress: {
     type: String,
     required: true,
-    alias: 'userAddress',
+    alias: 'owner',
     lowercase: true,
     trim: true
   },
