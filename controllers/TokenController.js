@@ -169,7 +169,7 @@ exports.logTransfer = async (data) => {
     if (!token.transfers) token.transfers = []
     const i = token.transfers.indexOf(data._id)
     if (i !== -1) return Promise.resolve(token)
-    else token.transfers.push(data)
+    else token.transfers.push(data._id)
 
     await token.save()
     return Promise.resolve(token)
@@ -232,4 +232,8 @@ exports.removeListing = async (data) => {
   } catch (error) {
     return Promise.reject(error)
   }
+}
+
+exports.addBid = async (data) => {
+  console.log(data)
 }
