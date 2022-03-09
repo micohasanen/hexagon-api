@@ -32,14 +32,27 @@ router.get('/all/whitelisted', async (req, res) => {
 
 router.get('/', async (req, res) => {
   try {
-    const page = req.query.page || 0
-    let size = req.query.size || 20
+    let page = parseInt(req.query.page || 0)
+    let size = parseInt(req.query.size || 20)
     const sort = req.query.sort || 'name'
     const chain = req.query.chain
-    if (size > 50) size = 50
+
+    if (isNaN(size) || size > 50) size = 50
+    if (isNaN(page)) page = 0
+
+    const count = await Collection.countDocuments({ chain, whitelisted: true })
+    const totalPageCount = Math.ceil(count / size)
 
     const collections = await Collection.find({ chain, whitelisted: true }).sort(sort).skip(page * size).limit(size).exec()
-    return res.status(200).send(collections)
+    return res.status(200).json({ 
+      total: count, 
+      page,
+      size,
+      previousPage: page === 0 ? null : page - 1,
+      nextPage: page + 1 < totalPageCount ? page + 1 : null,
+      totalPageCount,
+      results: collections 
+    })
   } catch (error) {
     return res.status(500).json({ message: 'Something went wrong.', error })
   }
@@ -57,15 +70,15 @@ router.get('/:address', async (req, res) => {
 })
 
 router.post('/:address/tokens', async (req, res) => {
-  let page = req.query.page || 0
-  let pageSize = req.query.size || 20
+  let page = parseInt(req.query.page || 0)
+  let size = parseInt(req.query.size || 20)
   let sort = req.query.sort || 'tokenId'
   let findQuery = { collectionId: req.params.address }
 
-  if (pageSize > 50) pageSize = 50
+  if (isNaN(size) || size > 50) size = 50
+  if (isNaN(page)) page = 0
 
   if (req.body?.traits?.length) {
-    page = 0
     const values = []
     const types = new Set()
     const elemMatches = []
@@ -78,16 +91,26 @@ router.post('/:address/tokens', async (req, res) => {
     if ([...types].length === 1) findQuery.traits = { $elemMatch: { value: { $in: values }, trait_type: { $in: [...types] } } }
     else if ([...types].length > 1) findQuery.traits = { $all: elemMatches }
   }
+
+  const count = await Token.countDocuments(findQuery)
+  const totalPageCount = Math.ceil(count / size)
   
   const tokens = await Token
     .find(findQuery)
     .sort(sort)
-    .skip(page * pageSize)
-    .limit(pageSize)
+    .skip(page * size)
+    .limit(size)
     .populate('listings')
     .exec()
   
-  return res.status(200).send(tokens)
+  return res.status(200).json({ 
+    total: count, 
+    page, 
+    size,
+    previousPage: page === 0 ? null : page - 1,
+    nextPage: page + 1 < totalPageCount ? page + 1 : null,
+    totalPageCount,
+    results: tokens })
 })
 
 router.get('/:address/tokens/all', async (req, res) => {
