@@ -1,7 +1,7 @@
 const mongoose = require("mongoose")
 const { Moralis } = require("../utils/Moralis")
 const TokenController = require("../controllers/TokenController")
-const CollectionController = require("../controllers/CollectionController")
+const { generateRarity } = require("../queue/Queue")
 const ABI_ERC721 = require("../abis/ERC721.json")
 const GetProvider = require("../utils/ChainProvider")
 
@@ -41,7 +41,12 @@ const CollectionSchema = mongoose.Schema({
   verified: Boolean,
   socials: Array,
   traits: Array,
-  owner: String
+  owner: { 
+    type: String,
+    lowercase: true,
+    trim: true
+  },
+  contractType: String
 }, { timestamps: true })
 
 function hasMethod(code, signature) {
@@ -97,6 +102,8 @@ CollectionSchema.methods.getAllTokens = async function () {
   try {
     let total = 1000
     const batchSize = 500
+    let processed = 0
+    let contractType = ''
     for (let i = 0; i <= total; i += batchSize) {
       const tokenData = await Moralis.Web3API.token.getAllTokenIds({
         address: this.address,
@@ -113,19 +120,24 @@ CollectionSchema.methods.getAllTokens = async function () {
           collectionId: this.address,
           tokenId: token.token_id,
           tokenUri: token.token_uri,
+          contractType: token.contract_type,
           metadata: JSON.parse(token.metadata)
         }
 
+        contractType = token.contractType
+
         TokenController.add(tempToken)
+        processed += 1
+        if (processed === total) {
+          if (!this.totalSupply) this.totalSupply = total
+          if (!this.contractType) this.contractType = contractType
+
+          await this.save()
+
+          generateRarity(this.address)
+        }
       }
     }
-
-    if (!this.totalSupply) {
-      this.totalSupply = total
-      this.save()
-    }
-
-    CollectionController.generateRarity(this.address)
   } catch (error) {
     throw new Error(error)
   }

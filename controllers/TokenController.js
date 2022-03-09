@@ -1,6 +1,7 @@
 const axios = require("axios")
 const Token = require("../models/Token")
 const GetProvider = require("../utils/ChainProvider")
+const { addMetadata } = require("../queue/Queue")
 
 // Holding the function signatures for unique functions for each contract
 const CHECKER_ERC721 = "0x70a08231"
@@ -57,23 +58,15 @@ exports.add = async (data) => {
   try {
     if (!data.collectionId || !data.tokenId) throw new Error('Missing required data.')
 
-    const exists = await Token.exists({ collectionId: data.collectionId, tokenId: data.tokenId })
-    if (exists) throw new Error('Token already exists')
+    let token = await Token.findOne({ collectionId: data.collectionId, tokenId: data.tokenId })
+    if (!token) token = new Token()
 
-    const token = new Token()
     Object.entries(data).forEach(([key, val]) => {
       token[key] = val
     })
 
-    if (token.tokenUri) {
-      const fetched = await axios.get(token.tokenUri)
-
-      if (fetched.data) {
-        token.metadata = fetched.data
-      }
-    }
-
     await token.save()
+    addMetadata(token._id)
 
     return Promise.resolve(token)
   } catch (error) {
@@ -107,25 +100,57 @@ exports.refreshMetadata = async function (id) {
     if (!token || !token.tokenCollection) throw new Error('No token found.')
 
     const { Provider } = GetProvider(token.tokenCollection.chain)
-    const contract = new Provider.eth.Contract(ABI_ERC721, token.collectionId)
+    let tokenUri = ''
 
-    let tokenUri = await contract.methods.tokenURI(token.tokenId).call()
-    if (tokenUri.startsWith('ipfs://')) tokenUri = tokenUri.replace('ipfs://', "https://gateway.ipfs.io/ipfs/")
+    if (token.contractType === 'ERC721') {
+      const contract = new Provider.eth.Contract(ABI_ERC721, token.collectionId)
+      tokenUri = await contract.methods.tokenURI(token.tokenId).call()
+  
+      const owner = await contract.methods.ownerOf(token.tokenId).call()
+      token.owner = owner
+    } else if (token.contractType === 'ERC1155') {
+      const contract = new Provider.eth.Contract(ABI_ERC1155, token.collectionId)
+      tokenUri = await contract.methods.uri(token.tokenId).call()
+      console.log("ERC1155 Token URI", tokenUri)
+    }
 
     console.log('Refreshing metadata for token', token.tokenId)
 
     if (tokenUri) {
+      if (tokenUri.startsWith('ipfs://')) tokenUri = tokenUri.replace('ipfs://', "https://gateway.ipfs.io/ipfs/")
       token.tokenUri = tokenUri
       const fetched = await axios.get(tokenUri)
 
       if (fetched.data) {
         token.metadata = fetched.data
-        await token.save()
+
+        if (fetched.data.attributes) {
+          // Get rarity score from collection
+          token.traits = fetched.data.attributes
+          let totalRarity = 0
+          token.traits.forEach((trait) => {
+            if (!token.tokenCollection.traits?.length) return
+            const type = token.tokenCollection.traits.find((t) => t.type === trait.trait_type)
+            const { rarityPercent, rarityScore, rarityRank } = type.attributes.find((a) => a.value === trait.value)
+
+            trait.rarityPercent = rarityPercent
+            trait.rarityScore = rarityScore
+            trait.rarityRank = rarityRank
+
+            totalRarity += rarityScore
+          })
+
+          token.rarity = totalRarity
+          token.markModified('traits')
+        }
       }
     }
 
+    await token.save()
+
     return Promise.resolve(token)
  } catch (error) {
+    console.error(error)
     return Promise.reject(error)
   }
 }
@@ -138,11 +163,12 @@ exports.logTransfer = async (data) => {
       token = new Token() 
       token.collectionId = data.tokenAddress
       token.tokenId = data.tokenId
+      token.contractType = data.contractType || 'ERC721'
     }
 
     if (!token.transfers) token.transfers = []
-    let exists = token.transfers.find((t) => t.signature === data.signature)
-    if (exists) exists = data
+    const i = token.transfers.indexOf(data._id)
+    if (i !== -1) return Promise.resolve(token)
     else token.transfers.push(data)
 
     await token.save()

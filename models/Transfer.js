@@ -1,6 +1,7 @@
 const mongoose = require("mongoose")
 const TokenController = require("../controllers/TokenController")
 const GetProvider = require("../utils/ChainProvider")
+const { addMetadata } = require("../queue/Queue")
 
 const TransferSchema = mongoose.Schema({
   blockTimestamp: String,
@@ -30,6 +31,7 @@ const TransferSchema = mongoose.Schema({
     unique: true
   },
   chain: String,
+  contractType: String
 }, { timestamps: true })
 
 TransferSchema.pre('save', async function(next) {
@@ -48,7 +50,9 @@ TransferSchema.pre('save', async function(next) {
 })
 
 TransferSchema.post('save', function() {
-  TokenController.logTransfer(this)
+  TokenController.logTransfer(this).then((token) => {
+    if (!token.metadata) addMetadata(token._id)
+  })
 })
 
 module.exports = mongoose.model('Transfer', TransferSchema)

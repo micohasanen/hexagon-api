@@ -1,5 +1,4 @@
 const mongoose = require("mongoose")
-const Collection = require("./Collection")
 const { Moralis } = require("../utils/Moralis")
 const { addMetadata } = require("../queue/Queue")
 
@@ -29,8 +28,9 @@ const TokenSchema = mongoose.Schema({
   },
   rarity: Number,
   rarityRank: Number,
-  transfers: Array,
+  transfers: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Transfer' }],
   listings: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Listing' }],
+  bids: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Bid' }],
   highestPrice: {
     type: Number,
     default: 0
@@ -38,25 +38,34 @@ const TokenSchema = mongoose.Schema({
   lowestPrice: {
     type: Number,
     default: 0
+  },
+  highestBid: {
+    type: Number,
+    default: 0
+  },
+  highestBidder: {
+    type: String,
+    lowercase: true,
+    trim: true
+  },
+  contractType: String,
+  owner: {
+    type: String,
+    lowercase: true,
+    trim: true
   }
 }, { timestamps: true, toObject: { virtuals: true }, toJSON: { virtuals: true } })
 
 TokenSchema.pre('save', function (next) {
   this.collectionId = this.collectionId.toLowerCase()
 
-  if (this.metadata?.attributes) { 
+  if (this.metadata?.attributes?.length && !this.traits?.length) { 
     this.traits = this.metadata.attributes 
   }
   if (this.metadata?.name) this.name = this.metadata.name
   if (this.metadata?.image) this.image = this.metadata.image
   if (this.metadata?.description) this.description = this.metadata.description
   next()
-})
-
-TokenSchema.post('save', function () {
-  if (!this.metadata) {
-    addMetadata(this._id)
-  }
 })
 
 TokenSchema.virtual('tokenCollection', {

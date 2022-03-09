@@ -8,7 +8,6 @@ const morgan = require("morgan")
 const helmet = require("helmet")
 
 const { Moralis } = require("./utils/Moralis")
-const Collection = require("./models/Collection")
 
 const app = express()
 app.use(cors())
@@ -41,16 +40,6 @@ app.use('/auth', require("./routes/auth"))
 app.use('/listings', require("./routes/listings"))
 
 app.listen(PORT, () => {
-  // Setup listeners for marketplace events
-  require("./listeners/marketplace").default()
-
-  // Setup listeners for all whitelisted collections
-  Collection.find({ whitelisted: true }).then((docs) => {
-    docs.forEach((doc) => {
-      require("./listeners/collection")(doc)
-    })
-  })
-
   // Setup Queue Workers
   require("./queue/Worker")()
 
