@@ -79,13 +79,10 @@ CollectionSchema.pre('save', async function (next) {
     if (!this.symbol) {
       this.symbol = await contract.methods.symbol().call()
     } 
-    if (!this.totalSupply) {
-      // We are checking if the contract has a totalSupply method, otherwise we'll get an error
-      const methodABI = contract.methods.totalSupply().encodeABI()
-      if(hasMethod(code, methodABI)) {
-        console.log('Getting collection supply')
-        this.totalSupply = await contract.methods.totalSupply().call()
-      }
+    // We are checking if the contract has a totalSupply method, otherwise we'll get an error
+    if(hasMethod(code, contract.methods.totalSupply().encodeABI())) {
+      console.log('Getting collection supply')
+      this.totalSupply = await contract.methods.totalSupply().call()
     }
     if (!this.owner) {
       // We are checking if the contract has an owner method before adding the owner

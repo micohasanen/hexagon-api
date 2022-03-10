@@ -52,12 +52,19 @@ const BidSchema = mongoose.Schema({
   active: {
     type: Boolean,
     default: true
+  },
+  canceled: {
+    type: Boolean,
+    default: false
+  },
+  accepted: {
+    type: Boolean, 
+    default: false
   }
 }, { timestamps: true })
 
 BidSchema.post('save', function () {
-  if (this.active) TokenController.addBid(this)
-  else TokenController.removeBid(this)
+  TokenController.logBid(this)
 })
 
 module.exports = mongoose.model('Bid', BidSchema)

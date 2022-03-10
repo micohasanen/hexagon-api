@@ -23,6 +23,8 @@ exports.generateRarity = async (address) => {
     const collection = await Collection.findOne({ address })
     if (!collection) throw new Error('No collection found.')
 
+    console.log('Rarity generation started for' , address)
+
     const tokens = await TokenController.getAllForCollection(address)
     if (tokens.length) collection.traits = []
     const traits = collection.traits

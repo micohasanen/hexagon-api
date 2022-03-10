@@ -31,7 +31,9 @@ router.post("/", async (req, res) => {
     const collection = await Collection.findOne({ address: address.toLowerCase() })
     if (!collection) return res.status(404).json({ message: 'Invalid collection address.' })
 
-    const currency = collection.currency.address || process.env.DEFAULT_CURRENCY
+    const currency = collection.currency?.contract || process.env.DEFAULT_CURRENCY
+    if (!currency) throw new Error('No collection currency')
+
     const balance = await checkBalance(collection.chain, currency, user)
 
     const requiredValue = Number(data.pricePerItem) * Number(data.quantity)

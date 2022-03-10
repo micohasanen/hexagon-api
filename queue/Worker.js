@@ -5,6 +5,8 @@ const { Worker } = require("bullmq")
 const TransferController = require("../controllers/TransferController")
 const TokenController = require("../controllers/TokenController")
 const CollectionController = require("../controllers/CollectionController")
+const ListingController = require("../controllers/ListingController")
+const BidController = require("../controllers/BidController")
 
 module.exports = () => {
   // Process a new transfer Event
@@ -32,9 +34,9 @@ module.exports = () => {
 
   const listingWorker = new Worker('listings', async (job) => {
     if (job.data.eventType === 'accepted') {
-
+      ListingController.accept(job.data)
     } else if (job.data.eventType === 'canceled') {
-      
+      ListingController.cancel(job.data)
     }
   }, { connection: config.redisConnection })
 }

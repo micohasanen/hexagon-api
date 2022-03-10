@@ -1,7 +1,7 @@
 const axios = require("axios")
 const Token = require("../models/Token")
 const GetProvider = require("../utils/ChainProvider")
-const { addMetadata } = require("../queue/Queue")
+const { addMetadata, generateRarity } = require("../queue/Queue")
 
 // Holding the function signatures for unique functions for each contract
 const CHECKER_ERC721 = "0x70a08231"
@@ -143,7 +143,10 @@ exports.refreshMetadata = async function (id) {
             const type = token.tokenCollection.traits.find((t) => t.type === trait.trait_type)
             const attr = type.attributes.find((a) => a.value === trait.value)
 
-            if (!attr) return
+            if (!attr || !attr.rarityScore) { 
+              // generateRarity(token.collectionId.toLowerCase())
+              return 
+            }
             trait.rarityPercent = attr.rarityPercent
             trait.rarityScore = attr.rarityScore
             trait.rarityRank = attr.rarityRank
@@ -175,6 +178,7 @@ exports.logTransfer = async (data) => {
       token.collectionId = data.tokenAddress
       token.tokenId = data.tokenId
       token.contractType = data.contractType || 'ERC721'
+      generateRarity(data.tokenAddress.toLowerCase())
     }
 
     if (!token.transfers) token.transfers = []
@@ -198,7 +202,15 @@ function getHighestAndLowestPrice(prices) {
   return { highestPrice, lowestPrice }
 }
 
-exports.addListing = async (data) => {
+function isExpired (timestamp) {
+  const expiry = new Date(timestamp).getTime()
+  const now = new Date().getTime()
+
+  if (expiry < now) return true
+  return false
+}
+
+exports.logListing = async (data) => {
   try {
     if (!data._id) throw new Error('Listing _id must be specified')
     const token = await Token.findOne({ collectionId: data.collectionId, tokenId: data.tokenId }).populate('listings').exec()
@@ -209,7 +221,9 @@ exports.addListing = async (data) => {
       token.listings.push(data)
     }
 
-    const prices = token.listings.map((l) => l.pricePerItem)
+    const prices = token.listings.map((l) => { 
+      if (!l.canceled) return l.pricePerItem 
+    })
     const calc = getHighestAndLowestPrice(prices)
 
     token.highestPrice = calc.highestPrice
@@ -223,40 +237,26 @@ exports.addListing = async (data) => {
   }
 }
 
-exports.removeListing = async (data) => {
+exports.logBid = async (data) => {
   try {
-    const token = await Token.findOne({ collectionId: data.collectionId, tokenId: data.tokenId }).populate('listings').exec()
-    if (!token) throw new Error('No token found')
-
-    const i = token.listings.findIndex((l) => l._id.toString() === data._id.toString())
-    if (i !== -1) token.listings.splice(i, 1)
-
-    const prices = token.listings.map((l) => l.pricePerItem)
-    const calc = getHighestAndLowestPrice(prices)
-
-    token.highestPrice = calc.highestPrice
-    token.lowestPrice = calc.lowestPrice
-
-    token.markModified('listings')
-    await token.save()
-    return Promise.resolve(token)
-  } catch (error) {
-    return Promise.reject(error)
-  }
-}
-
-exports.addBid = async (data) => {
-  try {
+    if (!data._id) throw new Error('Data _id must be specified')
     const token = await Token.findOne({ collectionId: data.collectionId, tokenId: data.tokenId }).populate('bids').exec()
     if (!token) throw new Error('No token found')
 
     const exists = token.bids.find((b) => b._id.toString() === data._id.toString())
     if (!exists) token.bids.push(data)
 
-    const prices = token.bids.map(b => b.pricePerItem)
+    const prices = token.bids.map(b => { 
+      if (!b.canceled) return b.pricePerItem 
+    })
     const calc = getHighestAndLowestPrice(prices)
 
-    if (data.pricePerItem > token.highestBid) token.highestBidder = data.userAddress
+    if (
+      !data.canceled && 
+      !isExpired(data.expiry) && 
+      data.pricePerItem > token.highestBid
+      ) { token.highestBidder = data.userAddress }
+      
     if (!calc.highestPrice && !calc.lowestPrice) token.highestBidder = ''
     token.highestBid = calc.highestPrice
     token.lowestBid = calc.lowestPrice

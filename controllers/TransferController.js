@@ -62,8 +62,6 @@ exports.add = async (data) => {
     .update(`${data.blockNumber}${data.fromAddress}${data.toAddress}${data.tokenId}`)
     .digest('hex')
 
-    console.log(hash)
-
     const exists = await Transfer.exists({ signature: hash })
     if (!exists) {
       const transfer = new Transfer()

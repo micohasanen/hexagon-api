@@ -8,18 +8,21 @@ const ListingSchema = mongoose.Schema({
     required: true,
     alias: 'contractAddress',
     lowercase: true,
-    trim: true
+    trim: true,
+    index: true
   },
-  owner: {
+  userAddress: {
     type: String,
     required: true,
-    alias: 'userAddress',
+    alias: 'owner',
     lowercase: true,
-    trim: true
+    trim: true,
+    index: true
   },
   tokenId: {
     type: Number,
-    required: true
+    required: true,
+    index: true
   },
   quantity: {
     type: Number,
@@ -35,7 +38,8 @@ const ListingSchema = mongoose.Schema({
   },
   nonce: {
     type: Number,
-    required: true
+    required: true,
+    index: true
   },
   r: {
     type: String,
@@ -53,17 +57,19 @@ const ListingSchema = mongoose.Schema({
   active: {
     type: Boolean,
     default: true
+  },
+  canceled: {
+    type: Boolean,
+    default: false
+  },
+  accepted: {
+    type: Boolean,
+    default: false
   }
 }, { timestamps: true })
 
-ListingSchema.pre('save', function (next) {
-  this.tokenId = parseInt(this.tokenId)
-  next()
-})
-
 ListingSchema.post('save', function () {
-  if (this.active) TokenController.addListing(this)
-  else TokenController.removeListing(this)
+  TokenController.logListing(this)
 })
 
 module.exports = mongoose.model('Listing', ListingSchema)
