@@ -1,5 +1,7 @@
 const mongoose = require("mongoose")
 const Token = require("../models/Token")
+const { addMetadata } = require("../queue/Queue")
+const Collection = require("./Collection")
 
 const SaleSchema = mongoose.Schema({
   collectionId: {
@@ -16,7 +18,11 @@ const SaleSchema = mongoose.Schema({
     index: true
   },
   saleType: String,
-  timestamp: Date,
+  timestamp: { 
+    type: Date, 
+    index: true,
+    required: true
+  },
   seller: {
     type: String,
     required: true,
@@ -41,13 +47,18 @@ const SaleSchema = mongoose.Schema({
   ownerRevenue: Number
 }, { timestamps: true })
 
-SaleSchema.post('save', function () {
-  Token.findOne({ collectionId: this.collectionId, tokenId: this.tokenId }).then(function (token) {
-    if (token.contractType === 'ERC721') {
-      token.owner = this.buyer
-      token.save()
-    }
-  })
+SaleSchema.post('save', async function () {
+  const token = await Token.findOne({ collectionId: this.collectionId, tokenId: this.tokenId })
+  token.lastSoldAt = this.timestamp
+  token.lastSalePrice = this.value
+  token.save()
+
+  addMetadata(token._id)
+
+  const collection = await Collection.findOne({ address: this.collectionId })
+  collection.volume.total += this.value
+  collection.sales.total += 1
+  collection.save()
 })
 
 module.exports = mongoose.model('Sale', SaleSchema)

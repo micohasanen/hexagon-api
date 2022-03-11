@@ -57,7 +57,9 @@ const TokenSchema = mongoose.Schema({
     type: String,
     lowercase: true,
     trim: true
-  }
+  },
+  lastSoldAt: Date,
+  lastSalePrice: Number
 }, { timestamps: true, toObject: { virtuals: true }, toJSON: { virtuals: true } })
 
 TokenSchema.pre('save', function (next) {

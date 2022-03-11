@@ -1,12 +1,21 @@
 const router = require("express").Router()
-const { FlowProducer } = require("bullmq")
 const config = require("../config")
 const { nanoid } = require("nanoid")
+const parseDuration = require("parse-duration")
+
+// Queue
+const { generateRarity } = require("../queue/Queue")
+const { FlowProducer } = require("bullmq")
+
+// Models
 const Collection = require("../models/Collection")
 const Token = require("../models/Token")
+const Listing = require("../models/Listing")
+const Sale = require("../models/Sale")
+
+// Controllers
 const TokenController = require("../controllers/TokenController")
 const TransferController = require("../controllers/TransferController")
-const { generateRarity } = require("../queue/Queue")
 
 // Middleware
 const AdminOnly = require("../middleware/Auth_AdminOnly")
@@ -63,7 +72,19 @@ router.get('/:address', async (req, res) => {
     const collection = await Collection.findOne({ address: req.params.address })
     if (!collection) return res.status(404).json({ message: 'No collection found.' })
 
-    return res.status(200).send(collection)
+    const prices = await Listing.aggregate([
+      { $match: { collectionId: req.params.address, active: true }},
+      { $group: { 
+        _id: "$collectionId", 
+        floorPrice: { $min: "$pricePerItem" },
+        averagePrice: { $avg: "$pricePerItem" },
+        highestPrice: { $max: "$pricePerItem" }
+      }}
+    ])
+    
+    delete prices[0]._id
+
+    return res.status(200).send({ ...collection.toObject(), ...prices[0] })
   } catch (error) {
     return res.status(500).json({ message: 'Something went wrong.', error })
   }
@@ -91,6 +112,10 @@ router.post('/:address/tokens', async (req, res) => {
     if ([...types].length === 1) findQuery.traits = { $elemMatch: { value: { $in: values }, trait_type: { $in: [...types] } } }
     else if ([...types].length > 1) findQuery.traits = { $all: elemMatches }
   }
+
+  if (sort === 'lowestPrice') findQuery.lowestPrice = { $exists: true, $gt: 0 }
+  else if (sort === 'highestBid') findQuery.highestBid = { $exists: true, $gt: 0 }
+  else if (sort === "lastSoldAt") findQuery.lastSoldAt =  { $exists: true }
 
   const count = await Token.countDocuments(findQuery)
   const totalPageCount = Math.ceil(count / size)
@@ -136,6 +161,24 @@ router.get('/:address/token/:tokenId', async (req, res) => {
   } catch (error) {
     return res.status(500).json({ message: 'Something went wrong.', error })
   }
+})
+
+router.get('/:address/sales', async (req, res) => {
+  let period = parseDuration(req.query.period)
+  if (!period) period = 86400000 // 1d
+
+  const now = new Date().getTime()
+  const startDate = now - period
+
+  const sales = await Sale.find({
+    collectionId: req.params.address,
+    timestamp: { $gte: startDate }
+  })
+
+  const volume = sales.reduce((acc, curr) => acc + curr.value, 0)
+  const totalSales = sales.length
+
+  return res.status(200).json({ volume, totalSales, results: sales })
 })
 
 router.post('/', async (req, res) => {

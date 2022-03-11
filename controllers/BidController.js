@@ -1,4 +1,5 @@
 const Bid = require("../models/Bid")
+const Listing = require("../models/Listing")
 const Sale = require("../models/Sale")
 
 exports.cancel = async (data) => {
@@ -6,7 +7,8 @@ exports.cancel = async (data) => {
     const bid = await Bid.findOne({ 
       contractAddress: data.nftContractAddress,
       tokenId: data.tokenId,
-      userAddress: data.owner
+      userAddress: data.owner,
+      nonce: data.nonce
     })
     if (!bid) throw new Error('No Bid found')
 
@@ -28,20 +30,38 @@ exports.accept = async (data) => {
     const bid = await Bid.findOne({ 
       contractAddress,
       tokenId: data.tokenId,
-      userAddress
+      userAddress,
+      nonce: data.nonce
      })
     if (!bid) throw new Error('No Bid found')
+    if (!bid.active) throw new Error('Bid is not active')
 
     bid.active = false
     bid.accepted = true
-    bid.r = bid.s = ''
+    bid.r = bid.s = 'null'
     await bid.save()
+
+    // Since the token changes ownership, we cancel all listings as well
+    const listings = await Listing.find({ 
+      contractAddress, 
+      tokenId: data.tokenId,
+      userAddress 
+    })
+
+    for (const listing of listings) {
+      listing.active = false
+      listing.canceled = true
+      listing.r = listing.s = 'null'
+      await listing.save()
+    }
 
     const sale = new Sale({ ...data })
     sale.collectionId = contractAddress
     sale.seller = userAddress
     sale.timestamp = new Date()
     sale.saleType = 'bid'
+    sale.buyer = data.buyer
+    sale.value = Number(bid.pricePerItem) * Number(bid.quantity)
     await sale.save()
 
     return Promise.resolve({ bid, sale })

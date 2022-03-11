@@ -5,6 +5,9 @@ const ABI_ERC20 = require("../abis/ERC20.json")
 const Bid = require("../models/Bid")
 const Collection = require("../models/Collection")
 
+// Controllers
+const BidController = require("../controllers/BidController")
+
 // Middleware
 const AdminOnly = require("../middleware/Auth_AdminOnly")
 
@@ -49,10 +52,24 @@ router.post("/", async (req, res) => {
   }
 })
 
+router.post("/accept", [AdminOnly], async (req, res) => {
+  try {
+    if (!req.body) return res.status(400).json({ message: 'Request body needed' })
+
+    const { bid, sale } = await BidController.accept(req.body)
+    return res.status(200).json({ bid, sale })
+  } catch (error) {
+    return res.status(500).json({ message: 'Something went wrong.', error })
+  }
+})
+
 router.delete("/:id", [AdminOnly], async (req, res) => {
   try {
     const bid = await Bid.findOne({ _id: req.params.id })
+
     bid.active = false
+    bid.canceled = true
+    bid.r = bid.s = 'null'
     await bid.save()
 
     return res.status(204).json({ message: `Bid ${req.params.id} deleted successfully.`})

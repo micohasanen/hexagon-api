@@ -5,6 +5,26 @@ const { generateRarity } = require("../queue/Queue")
 const ABI_ERC721 = require("../abis/ERC721.json")
 const GetProvider = require("../utils/ChainProvider")
 
+const TotalingSchema = {
+  total: {
+    type: Number,
+    default: 0
+  },
+  day: {
+    type: Number,
+    default: 0
+  },
+  week: {
+    type: Number,
+    default: 0
+  },
+  month: {
+    type: Number,
+    default: 0
+  },
+  default: {}
+}
+
 const CollectionSchema = mongoose.Schema({
   name: {
     type: String,
@@ -56,7 +76,9 @@ const CollectionSchema = mongoose.Schema({
     symbol: String,
     name: String,
     decimals: Number
-  }
+  },
+  volume: TotalingSchema,
+  sales: TotalingSchema
 }, { timestamps: true })
 
 function hasMethod(code, signature) {

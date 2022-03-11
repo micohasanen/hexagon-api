@@ -39,4 +39,12 @@ module.exports = () => {
       ListingController.cancel(job.data)
     }
   }, { connection: config.redisConnection })
+
+  const bidWorker = new Worker('bids', async (job) => {
+    if (job.data.eventType === 'accepted') {
+      BidController.accept(job.data)
+    } else if (job.data.eventType === 'canceled') {
+      BidController.cancel(job.data)
+    }
+  }, { connection: config.redisConnection })
 }

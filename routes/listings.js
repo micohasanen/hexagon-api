@@ -7,6 +7,7 @@ const Token = require("../models/Token")
 
 // Controllers
 const TokenController = require("../controllers/TokenController")
+const ListingController = require("../controllers/ListingController")
 
 // Middleware
 const AdminOnly = require("../middleware/Auth_AdminOnly")
@@ -42,13 +43,25 @@ router.post("/", async (req, res) => {
   }
 })
 
+router.post("/accept", AdminOnly, async (req, res) => {
+  try {
+    if (!req.body) return res.status(400).json({ message: 'Request body needed' })
+
+    const {listing, sale } = await ListingController.accept(req.body)
+    return res.status(200).json({ listing, sale })
+  } catch (error) {
+    return res.status(500).json({ message: 'Something went wrong.', error })
+  }
+})
+
 router.delete('/:id', AdminOnly, async (req, res) => {
   try {
     const listing = await Listing.findOne({ _id: req.params.id })
     listing.active = false
-    listing.deleted = true
+    listing.canceled = true
+    listing.r = listing.s = 'null'
     await listing.save()
-    return res.status(204).json({ message: `Listing ${req.params.id} deleted successfully.`})
+    return res.status(204).json({ message: `Listing ${req.params.id} canceled successfully.`})
   } catch (error) {
     return res.status(500).json({ message: 'Something went wrong.', error })
   }

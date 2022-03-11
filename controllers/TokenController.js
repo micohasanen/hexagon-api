@@ -141,6 +141,10 @@ exports.refreshMetadata = async function (id) {
           token.traits.forEach((trait) => {
             if (!token.tokenCollection.traits?.length) return
             const type = token.tokenCollection.traits.find((t) => t.type === trait.trait_type)
+            if (!type) {
+              generateRarity(token.collectionId.toLowerCase())
+              return
+            }
             const attr = type.attributes.find((a) => a.value === trait.value)
 
             if (!attr || !attr.rarityScore) { 
@@ -216,13 +220,15 @@ exports.logListing = async (data) => {
     const token = await Token.findOne({ collectionId: data.collectionId, tokenId: data.tokenId }).populate('listings').exec()
     if (!token) throw new Error('No token found')
 
-    const exists = token.listings.find(l => l._id.toString() === data._id.toString())
+    let exists = token.listings.find(l => l._id.toString() === data._id.toString())
     if (!exists) {
       token.listings.push(data)
-    }
+    } else exists = data
 
-    const prices = token.listings.map((l) => { 
-      if (!l.canceled) return l.pricePerItem 
+    const prices = token.listings.filter((l) => {
+      return l.active 
+    }).map((l) => { 
+      return l.pricePerItem 
     })
     const calc = getHighestAndLowestPrice(prices)
 
@@ -243,20 +249,23 @@ exports.logBid = async (data) => {
     const token = await Token.findOne({ collectionId: data.collectionId, tokenId: data.tokenId }).populate('bids').exec()
     if (!token) throw new Error('No token found')
 
-    const exists = token.bids.find((b) => b._id.toString() === data._id.toString())
+    let exists = token.bids.find((b) => b._id.toString() === data._id.toString())
     if (!exists) token.bids.push(data)
+    else exists = data
 
-    const prices = token.bids.map(b => { 
-      if (!b.canceled) return b.pricePerItem 
+    const prices = token.bids.filter((b) => { 
+      return b.active
+    }).map(b => { 
+      return b.pricePerItem 
     })
     const calc = getHighestAndLowestPrice(prices)
 
     if (
-      !data.canceled && 
+      data.active && 
       !isExpired(data.expiry) && 
       data.pricePerItem > token.highestBid
       ) { token.highestBidder = data.userAddress }
-      
+
     if (!calc.highestPrice && !calc.lowestPrice) token.highestBidder = ''
     token.highestBid = calc.highestPrice
     token.lowestBid = calc.lowestPrice
