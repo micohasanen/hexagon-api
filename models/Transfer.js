@@ -16,10 +16,22 @@ const TransferSchema = mongoose.Schema({
   tokenAddress: {
     type: String,
     required: true,
-    index: true
+    index: true,
+    lowercase: true,
+    trim: true
   },
-  fromAddress: String,
-  toAddress: String,
+  fromAddress: { 
+    type: String, 
+    lowercase: true,
+    trim: true,
+    required: true
+  },
+  toAddress: {
+    type: String, 
+    lowercase: true,
+    trim: true,
+    required: true
+  },
   tokenId: {
     type: Number,
     required: true,
@@ -35,8 +47,6 @@ const TransferSchema = mongoose.Schema({
 }, { timestamps: true })
 
 TransferSchema.pre('save', async function(next) {
-  this.tokenAddress = this.tokenAddress.toLowerCase()
-  this.tokenId = parseInt(this.tokenId)
   if (this.blockNumber) this.blockNumber = parseInt(this.blockNumber)
   if (this.blockNumber && !this.blockTimestamp) {
     if (this.chain) {

@@ -58,11 +58,12 @@ exports.syncCollectionTransfers = async (address) => {
 
 exports.add = async (data) => {
   try {
+    // Create a hash from transfer details to prevent collision in db
     const hash = crypto.createHash('sha256')
     .update(`${data.blockNumber}${data.fromAddress}${data.toAddress}${data.tokenId}`)
     .digest('hex')
 
-    const exists = await Transfer.exists({ signature: hash })
+    const exists = await Transfer.findOne({ signature: hash })
     if (!exists) {
       const transfer = new Transfer()
       transfer.signature = hash
@@ -72,6 +73,7 @@ exports.add = async (data) => {
       await transfer.save()
       return Promise.resolve()
     } else {
+      await exists.save()
       return Promise.resolve()
     }
   } catch (error) {

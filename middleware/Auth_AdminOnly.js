@@ -8,6 +8,8 @@ module.exports = async (req, res, next) => {
     token = token.replace('Bearer ', '')
   
     const { address, body } = await Web3Token.verify(token)
+
+    console.log({ address, body })
   
     const user = await User.findOne({ address: address.toLowerCase() })
     if (!user) return res.status(401).json({ message: 'Unauthorized: User not found.' })

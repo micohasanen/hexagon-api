@@ -12,6 +12,7 @@ const Collection = require("../models/Collection")
 const Token = require("../models/Token")
 const Listing = require("../models/Listing")
 const Sale = require("../models/Sale")
+const Balance = require("../models/Balance")
 
 // Controllers
 const TokenController = require("../controllers/TokenController")
@@ -72,7 +73,7 @@ router.get('/:address', async (req, res) => {
     const collection = await Collection.findOne({ address: req.params.address })
     if (!collection) return res.status(404).json({ message: 'No collection found.' })
 
-    const prices = await Listing.aggregate([
+    let prices = await Listing.aggregate([
       { $match: { collectionId: req.params.address, active: true }},
       { $group: { 
         _id: "$collectionId", 
@@ -82,9 +83,16 @@ router.get('/:address', async (req, res) => {
       }}
     ])
     
-    delete prices[0]._id
+    if (prices.length)
+      delete prices[0]._id
+    else prices = [{ floorPrice: 0, averagePrice: 0, highestPrice: 0 }]
 
-    return res.status(200).send({ ...collection.toObject(), ...prices[0] })
+    const owners = await Balance.distinct('address', { 
+      collectionId: req.params.address,
+      amount: { $gt: 0 }
+    })
+
+    return res.status(200).send({ ...collection.toObject(), ...prices[0], ownerCount: owners.length })
   } catch (error) {
     return res.status(500).json({ message: 'Something went wrong.', error })
   }

@@ -1,9 +1,21 @@
 const mongoose = require("mongoose")
-const { Moralis } = require("../utils/Moralis")
-const TokenController = require("../controllers/TokenController")
 const { generateRarity } = require("../queue/Queue")
+
+// ABIs
 const ABI_ERC721 = require("../abis/ERC721.json")
+const ABI_ERC1155 = require("../abis/ERC721.json")
+
+// Holding the function signatures for unique functions for each contract
+const CHECKER_ERC721 = "0x70a08231"
+const CHECKER_ERC1155 = "0x4e1273f4"
+
+// Controllers
+const TokenController = require("../controllers/TokenController")
+
+// Web3
+const { Moralis } = require("../utils/Moralis")
 const GetProvider = require("../utils/ChainProvider")
+const contractType = require("../utils/contractType")
 
 const TotalingSchema = {
   total: {
@@ -81,42 +93,42 @@ const CollectionSchema = mongoose.Schema({
   sales: TotalingSchema
 }, { timestamps: true })
 
-function hasMethod(code, signature) {
-  return code.indexOf(signature.slice(2, signature.length)) > 0
-}
-
 
 CollectionSchema.pre('save', async function (next) {
   this.address = this.address.toLowerCase()
 
   try {
     const { Provider } = GetProvider(this.chain)
-    const contract = new Provider.eth.Contract(ABI_ERC721, this.address)
-    
     const code = await Provider.eth.getCode(this.address)
 
+    if (!this.contractType) {
+      const type = contractType.getContractType(code)
+      this.contractType = type
+    }
+    const abi = this.contractType === 'ERC1155' ? ABI_ERC1155 : ABI_ERC721
+    const contract = new Provider.eth.Contract(abi, this.address)
+
     if (!this.name || this.name === 'WhitelistedCollection') {
-      this.name = await contract.methods.name().call()
+      if (contractType.hasMethod(code, contract.methods.name().encodeABI()))
+        this.name = await contract.methods.name().call()
     }
     if (!this.symbol) {
-      this.symbol = await contract.methods.symbol().call()
+      if (contractType.hasMethod(code, contract.methods.symbol().encodeABI()))
+        this.symbol = await contract.methods.symbol().call()
     } 
     // We are checking if the contract has a totalSupply method, otherwise we'll get an error
-    if(hasMethod(code, contract.methods.totalSupply().encodeABI())) {
-      console.log('Getting collection supply')
+    const supplyABI = contract.methods.totalSupply().encodeABI()
+    if(contractType.hasMethod(code, supplyABI))
       this.totalSupply = await contract.methods.totalSupply().call()
-    }
-    if (!this.owner) {
-      // We are checking if the contract has an owner method before adding the owner
-      const methodABI = contract.methods.owner().encodeABI()
-      if(hasMethod(code, methodABI)) {
-        console.log('Getting collection owner')
-        this.owner = await contract.methods.owner().call()
-      }
-    }
+
+    // We are checking if the contract has an owner method before adding the owner
+    const ownerABI = contract.methods.owner().encodeABI()
+    if(contractType.hasMethod(code, ownerABI))
+      this.owner = await contract.methods.owner().call()
 
     next()
   } catch (error) {
+    console.error(error)
     next()
   }
 })

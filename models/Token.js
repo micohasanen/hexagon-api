@@ -11,7 +11,9 @@ const TokenSchema = mongoose.Schema({
   collectionId: { // Collection address, not Mongo ID
     type: String,
     required: true,
-    index: true
+    index: true,
+    lowercase: true,
+    trim: true
   },
   name: String,
   image: String,
@@ -63,8 +65,6 @@ const TokenSchema = mongoose.Schema({
 }, { timestamps: true, toObject: { virtuals: true }, toJSON: { virtuals: true } })
 
 TokenSchema.pre('save', function (next) {
-  this.collectionId = this.collectionId.toLowerCase()
-
   if (this.metadata?.attributes?.length && !this.traits?.length) { 
     this.traits = this.metadata.attributes 
   }

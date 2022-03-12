@@ -31,6 +31,20 @@ app.use('/listings', require("./routes/listings"))
 app.use('/bids', require("./routes/bids"))
 app.use('/users', require("./routes/users"))
 
+// If all else fails
+app.use(function(req, res, next) {
+  next(404);
+});
+
+// error handler
+app.use(function(err, req, res) {
+  // set locals, only providing error in development
+  res.locals.message = err.message;
+  res.locals.error = req.app.get('env') === 'development' ? err : {};
+
+  res.sendStatus(err || 500);
+});
+
 app.listen(PORT, () => {
   // Setup Queue Workers
   require("./queue/Worker")()

@@ -1,24 +1,68 @@
 const axios = require("axios")
-const Token = require("../models/Token")
-const GetProvider = require("../utils/ChainProvider")
 const { addMetadata, generateRarity } = require("../queue/Queue")
-
-// Holding the function signatures for unique functions for each contract
-const CHECKER_ERC721 = "0x70a08231"
-const CHECKER_ERC1155 = "0x4e1273f4"
 
 // ABIs
 const ABI_ERC721 = require("../abis/ERC721.json")
 const ABI_ERC1155 = require("../abis/ERC1155.json")
 
-function hasMethod(code, signature) {
-  return code.indexOf(signature.slice(2, signature.length)) > 0
-}
+// Models
+const Token = require("../models/Token")
+const Balance = require("../models/Balance")
 
-function getContractType (bytecode) {
-  if (hasMethod(bytecode, CHECKER_ERC721)) return 'ERC721'
-  else if (hasMethod(bytecode, CHECKER_ERC1155)) return 'ERC1155'
-  else return null
+// Web3
+const GetProvider = require("../utils/ChainProvider")
+
+const contractUtils = require("../utils/contractType")
+
+// Holding the function signatures for unique functions for each contract
+const CHECKER_ERC721 = "0x70a08231"
+const CHECKER_ERC1155 = "0x4e1273f4"
+
+async function updateBalances (data) {
+  try {
+    const { Provider } = GetProvider(data.chain)
+    const abi = data.contractType === 'ERC1155' ? ABI_ERC1155 : ABI_ERC721
+    const contract = new Provider.eth.Contract(abi, data.tokenAddress)
+
+    // Get new balances of transfer parties
+    if (data.contractType === 'ERC721') {
+      const owner = await contract.methods.ownerOf(data.tokenId).call()
+
+      await Balance.updateOne({ 
+        tokenId: data.tokenId, 
+        collectionId: data.tokenAddress
+      }, { address: owner, amount: 1 }, { upsert: true })
+
+    } else if (data.contractType === 'ERC1155') {
+      let balanceFrom = 0
+      let balanceTo = 0
+
+      if (!contractUtils.isZeroAddress(data.fromAddress))
+        balanceFrom = await contract.methods.balanceOf(data.fromAddress, data.tokenId).call()
+
+      balanceTo = await contract.methods.balanceOf(data.toAddress, data.tokenId).call()
+
+      const createOptions = { upsert: true }
+
+      if (!contractUtils.isZeroAddress(data.fromAddress)) {
+        await Balance.updateOne({
+          address: data.fromAddress,
+          tokenId: data.tokenId,
+          collectionId: data.tokenAddress
+        }, { amount: balanceFrom }, createOptions)
+      }
+
+      await Balance.updateOne({
+        address: data.toAddress,
+        tokenId: data.tokenId,
+        collectionId: data.tokenAddress
+      }, { amount: balanceTo }, createOptions)
+  }
+
+  return Promise.resolve(true)
+  } catch (error) {
+    return Promise.reject(error)
+  }
 }
 
 exports.getAllForCollection = async (collectionId) => {
@@ -41,13 +85,15 @@ exports.isOwnerOfToken = async (collectionAddress, userAddress, tokenId, qty) =>
     const { Provider } = GetProvider(token.tokenCollection.chain)
     const code = await Provider.eth.getCode(collectionAddress)
 
-    if (hasMethod(code, CHECKER_ERC721)) { // Is an ERC721 Contract
+    const contractType = contractUtils.getContractType(code)
+
+    if (contractType === 'ERC721') {
       const contract = new Provider.eth.Contract(ABI_ERC721, collectionAddress)
       const currentOwner = await contract.methods.ownerOf(tokenId).call()
 
       if (currentOwner.toLowerCase() === userAddress.toLowerCase()) return { owner: currentOwner, status: true, contractType: 'ERC721' }
       return { owner: '', status: false, contractType: 'ERC721' }
-    } else if (hasMethod(code, CHECKER_ERC1155)) { // Is an ERC1155 Contract
+    } else if (contractType === 'ERC1155') { // Is an ERC1155 Contract
       const contract = new Provider.eth.Contract(ABI_ERC1155, collectionAddress)
       const tokenBalance = await contract.methods.balanceOf(userAddress, tokenId).call()
       
@@ -109,7 +155,7 @@ exports.refreshMetadata = async function (id) {
     let tokenUri = ''
 
     if (!token.contractType) {
-      token.contractType = getContractType(Provider.eth.getCode(token.collectionId))
+      token.contractType = contractUtils.getContractType(Provider.eth.getCode(token.collectionId))
     }
 
     if (token.contractType === 'ERC721') {
@@ -185,12 +231,17 @@ exports.logTransfer = async (data) => {
       generateRarity(data.tokenAddress.toLowerCase())
     }
 
+    // Push transfer _id to token details
     if (!token.transfers) token.transfers = []
-    const i = token.transfers.indexOf(data._id)
-    if (i !== -1) return Promise.resolve(token)
-    else token.transfers.push(data._id)
-
+    const i = token.transfers.findIndex(t => t.toString() === data._id.toString())
+    if (i === -1) token.transfers.push(data._id)
     await token.save()
+
+    // Update owner balances
+    if (data.chain) {
+      await updateBalances(data)
+    }
+
     return Promise.resolve(token)
   } catch (error) {
     return Promise.reject(error)
