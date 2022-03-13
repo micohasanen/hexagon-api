@@ -1,41 +1,44 @@
 const router = require("express").Router()
-const { Moralis } = require("../utils/Moralis")
-const Collection = require("../models/Collection")
+const Balance = require("../models/Balance")
 const Token = require("../models/Token")
 
 router.get("/:address/tokens", async (req, res) => {
   try {
     const chain = req.query.chain || 'mumbai'
+    let page = parseInt(req.query.page || 0)
+    let size = parseInt(req.query.size || 20)
 
-    const whitelisted = await Collection.find({ chain, whitelisted: true })
-    const searches = []
+    if (isNaN(page)) page = 0
+    if (isNaN(size) || size > 50) size = 50
 
-    // There is an edge case where not all NFTs are returned if user owns more than 500 in a single collection
-    // And not very optimised yet, will come back to this
-    for (const collection of whitelisted) {
-      const options = { token_address: collection.address, address: req.params.address, chain }
-      const tokens = await Moralis.Web3API.account.getNFTsForContract(options)
-
-      searches.push({ collectionId: collection.address, tokenId: { $in: [] } })
-      const i = searches.length - 1
-
-      tokens.result.forEach((res) => {
-        searches[i].tokenId.$in.push(res.token_id)
-      })
+    const query = {
+      address: req.params.address,
+      amount: { $gt: 0 }
     }
+
+    const total = await Balance.countDocuments(query)
+    const totalPageCount = Math.ceil(total / size) - 1
+
+    const balances = await Balance.find(query)
+    .skip(page * size)
+    .limit(size)
+    .exec()
 
     const results = []
-    let total = 0
-
-    for (const search of searches) {
-      if (!search.tokenId.$in.length) continue
-      const count = await Token.countDocuments(search)
-      total += count
-      const tokens = await Token.find(search)
-      results.push(...tokens)
+    for (const balance of balances) {
+      const token = await Token.findOne({ collectionId: balance.collectionId, tokenId: balance.tokenId })
+      results.push(token)
     }
 
-    return res.status(200).json({ total, results })
+    return res.status(200).json({ 
+      total, 
+      totalPageCount, 
+      page, 
+      size,
+      previousPage: page === 0 ? null : page - 1,
+      nextPage: page === totalPageCount ? null : page + 1,
+      results 
+    })
 
   } catch (error) {
     return res.status(500).json({ message: 'Something went wrong.' })

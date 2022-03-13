@@ -51,7 +51,7 @@ router.get('/', async (req, res) => {
     if (isNaN(page)) page = 0
 
     const count = await Collection.countDocuments({ chain, whitelisted: true })
-    const totalPageCount = Math.ceil(count / size)
+    const totalPageCount = Math.ceil(count / size) - 1
 
     const collections = await Collection.find({ chain, whitelisted: true }).sort(sort).skip(page * size).limit(size).exec()
     return res.status(200).json({ 
@@ -126,7 +126,7 @@ router.post('/:address/tokens', async (req, res) => {
   else if (sort === "lastSoldAt") findQuery.lastSoldAt =  { $exists: true }
 
   const count = await Token.countDocuments(findQuery)
-  const totalPageCount = Math.ceil(count / size)
+  const totalPageCount = Math.ceil(count / size) - 1
   
   const tokens = await Token
     .find(findQuery)
@@ -140,7 +140,7 @@ router.post('/:address/tokens', async (req, res) => {
     page, 
     size,
     previousPage: page === 0 ? null : page - 1,
-    nextPage: page + 1 < totalPageCount ? page + 1 : null,
+    nextPage: page === totalPageCount ? page + 1 : null,
     totalPageCount,
     results: tokens })
 })
