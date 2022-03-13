@@ -6,9 +6,9 @@ const config = {
   } 
 }
 
-const MumbaiProvider = new Web3(new Web3.providers.WebsocketProvider(process.env.RPC_MUMBAI, config))
-const PolygonProvider = new Web3(new Web3.providers.WebsocketProvider(process.env.RPC_POLYGON, config))
-const ETHProvider = new Web3(new Web3.providers.WebsocketProvider(process.env.RPC_ETH, config))
+const MumbaiProvider = new Web3(process.env.RPC_MUMBAI)
+const PolygonProvider = new Web3(process.env.RPC_POLYGON)
+const ETHProvider = new Web3(process.env.RPC_ETH)
 
 function getProvider (chain) {
   switch (chain) {

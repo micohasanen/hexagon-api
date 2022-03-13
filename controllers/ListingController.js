@@ -26,16 +26,17 @@ exports.cancel = async (data) => {
 
 exports.accept = async (data) => {
   try {
+    console.log(data)
     const contractAddress = data.nftContractAddress || data.nftContract
     const userAddress = data.owner || data.seller || data.userAddress
     const listing = await Listing.findOne({ 
       contractAddress,
       tokenId: data.tokenId,
       userAddress,
-      nonce: data.nonce
+      nonce: data.nonce,
+      active: true
      })
     if (!listing) throw new Error('No Listing found')
-    if (!listing.active) throw new Error('Listing is not active')
 
     listing.active = false
     listing.accepted = true

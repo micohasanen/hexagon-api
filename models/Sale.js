@@ -55,10 +55,10 @@ SaleSchema.post('save', async function () {
 
   addMetadata(token._id)
 
-  const collection = await Collection.findOne({ address: this.collectionId })
-  collection.volume.total += this.value
-  collection.sales.total += 1
-  collection.save()
+  const collection = await Collection.updateOne({ address: this.collectionId }, {
+    $inc: { "volume.total": this.value, "sales.total": 1 }
+  })
+
 })
 
 module.exports = mongoose.model('Sale', SaleSchema)

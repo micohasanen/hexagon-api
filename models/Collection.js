@@ -170,7 +170,7 @@ CollectionSchema.methods.getAllTokens = async function () {
         TokenController.add(tempToken)
         processed += 1
         if (processed === total) {
-          if (!this.totalSupply) this.totalSupply = total
+          this.totalSupply = total
           if (!this.contractType) this.contractType = contractType
 
           await this.save()

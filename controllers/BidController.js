@@ -31,10 +31,10 @@ exports.accept = async (data) => {
       contractAddress,
       tokenId: data.tokenId,
       userAddress,
-      nonce: data.nonce
+      nonce: data.nonce,
+      active: true
      })
     if (!bid) throw new Error('No Bid found')
-    if (!bid.active) throw new Error('Bid is not active')
 
     bid.active = false
     bid.accepted = true

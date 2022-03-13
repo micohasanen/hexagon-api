@@ -7,6 +7,7 @@ const TokenController = require("../controllers/TokenController")
 const CollectionController = require("../controllers/CollectionController")
 const ListingController = require("../controllers/ListingController")
 const BidController = require("../controllers/BidController")
+const AuctionController = require("../controllers/AuctionController")
 
 module.exports = () => {
   // Process a new transfer Event
@@ -30,8 +31,8 @@ module.exports = () => {
     return true
   }, { connection: config.redisConnection })
 
-  // Events from Marketplace
-
+  // Events from Marketplace 
+  // Listings
   const listingWorker = new Worker('listings', async (job) => {
     if (job.data.eventType === 'accepted') {
       ListingController.accept(job.data)
@@ -40,6 +41,7 @@ module.exports = () => {
     }
   }, { connection: config.redisConnection })
 
+  // Bids
   const bidWorker = new Worker('bids', async (job) => {
     if (job.data.eventType === 'accepted') {
       BidController.accept(job.data)
@@ -47,4 +49,15 @@ module.exports = () => {
       BidController.cancel(job.data)
     }
   }, { connection: config.redisConnection })
+
+  // Auctions
+  const auctionWorker = new Worker('auctions', async (job) => {
+    if (job.data.eventType === 'placed') {
+      AuctionController.startAuction(job.data)
+    } else if (job.data.eventType === 'bid') {
+      AuctionController.placeBid(job.data)
+    } else if (job.data.eventType === 'concluded') {
+      AuctionController.endAuction(job.data)
+    }
+  })
 }

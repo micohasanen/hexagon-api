@@ -47,7 +47,7 @@ router.post("/accept", AdminOnly, async (req, res) => {
   try {
     if (!req.body) return res.status(400).json({ message: 'Request body needed' })
 
-    const {listing, sale } = await ListingController.accept(req.body)
+    const { listing, sale } = await ListingController.accept(req.body)
     return res.status(200).json({ listing, sale })
   } catch (error) {
     return res.status(500).json({ message: 'Something went wrong.', error })
