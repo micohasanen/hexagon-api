@@ -68,6 +68,14 @@ router.get('/', async (req, res) => {
   }
 })
 
+/*router.get('/search', async (req, res) => {
+  try {
+    
+  } catch (error) {
+    return res.status(500).json({ message: 'Something went wrong.', error })
+  }
+})*/
+
 router.get('/:address', async (req, res) => {
   try {
     const collection = await Collection.findOne({ address: req.params.address })
@@ -193,11 +201,14 @@ router.post('/', async (req, res) => {
   try {
     if (!req.body?.address) return res.status(400).json({ message: 'Missing required parameters.' })
 
-    const collection = new Collection()
-    Object.entries(req.body).forEach(([key, val]) => {
-      collection[key] = val
-    })
-
+    const collection = new Collection({ ...req.body, whitelisted: false, pending: true })
+    if (!collection.currency) {
+      collection.currency = {
+        name: 'Honey',
+        symbol: 'HNY',
+        contract: process.env.DEFAULT_CURRENCY
+      }
+    }
     await collection.save()
 
     return res.status(200).send(collection)

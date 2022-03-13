@@ -59,5 +59,5 @@ module.exports = () => {
     } else if (job.data.eventType === 'concluded') {
       AuctionController.endAuction(job.data)
     }
-  })
+  }, { connection: config.redisConnection })
 }
