@@ -2,10 +2,10 @@ const mongoose = require("mongoose")
 const TokenController = require("../controllers/TokenController")
 
 const BidSchema = mongoose.Schema({
-  collectionId: {
+  contractAddress: {
     type: String,
     required: true,
-    alias: 'contractAddress',
+    alias: 'collectionId',
     lowercase: true,
     trim: true
   },
@@ -18,7 +18,8 @@ const BidSchema = mongoose.Schema({
   },
   tokenId: {
     type: Number,
-    required: true
+    required: true,
+    index: true
   },
   quantity: {
     type: Number,

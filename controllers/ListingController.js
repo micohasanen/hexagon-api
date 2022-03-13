@@ -27,8 +27,12 @@ exports.cancel = async (data) => {
 exports.accept = async (data) => {
   try {
     console.log(data)
-    const contractAddress = data.nftContractAddress || data.nftContract
+    const contractAddress = data.nftContractAddress || data.contractAddress
     const userAddress = data.owner || data.seller || data.userAddress
+
+    if (!data.buyer) throw ('Buyer is required')
+    if (data.buyer.toLowerCase() === userAddress.toLowerCase()) throw ("Can't buy your own token.")
+    
     const listing = await Listing.findOne({ 
       contractAddress,
       tokenId: data.tokenId,

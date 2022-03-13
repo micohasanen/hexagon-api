@@ -184,5 +184,7 @@ CollectionSchema.methods.getAllTokens = async function () {
   }
 }
 
+CollectionSchema.index({ name: 'text' })
+
 const Collection = mongoose.model('Collection', CollectionSchema)
 module.exports = Collection

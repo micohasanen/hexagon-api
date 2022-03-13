@@ -68,13 +68,36 @@ router.get('/', async (req, res) => {
   }
 })
 
-/*router.get('/search', async (req, res) => {
+router.get('/search', async (req, res) => {
   try {
-    
+      if (!req.query.q) return res.status(200).json({ total: 0, results: [] })
+
+      const addressMatch = await Collection.findOne({ address: req.query.q })
+      if (addressMatch) return res.status(200).json({ total: 1, results: [ addressMatch ]})
+
+      let collections = []
+
+      collections = await Collection.aggregate([
+        { $match: { $text: { $search: decodeURIComponent(req.query.q) } } },
+        { $sort: { score: { $meta: "textScore" } } },
+        { $unset: 'traits' },
+        { $limit: 10 }
+      ])
+
+      // Perform a partial text search if nothing was found
+      if (!collections.length) { 
+        collections = await Collection.find({
+          $or: [
+            { "name": new RegExp(decodeURIComponent(req.query.q), "gi") }
+          ]
+        }).select("-traits")
+      }
+
+      return res.status(200).json({ total: collections.length, results: collections })
   } catch (error) {
     return res.status(500).json({ message: 'Something went wrong.', error })
   }
-})*/
+})
 
 router.get('/:address', async (req, res) => {
   try {

@@ -1,4 +1,5 @@
 const router = require("express").Router()
+const { body, validationResult } = require("express-validator")
 
 // Models
 const Listing = require("../models/Listing")
@@ -11,16 +12,30 @@ const ListingController = require("../controllers/ListingController")
 
 // Middleware
 const AdminOnly = require("../middleware/Auth_AdminOnly")
+const { isExpired } = require("../utils/base")
 
-router.post("/", async (req, res) => {
+router.post("/", [
+  body('contractAddress').exists().notEmpty().isString(),
+  body('userAddress').exists().notEmpty().isString(),
+  body('tokenId').exists().notEmpty(),
+  body('quantity').exists().notEmpty().custom(value => !isNaN(value) && value > 0),
+  body('pricePerItem').exists().notEmpty().custom(value => !isNaN(value) && value > 0),
+  body('expiry').exists().notEmpty().custom(value => !isNaN(value) && !isExpired(value)),
+  body('nonce').exists().notEmpty().custom(value => !isNaN(value) && value > 0),
+  body('r').exists().notEmpty().isString(),
+  body('s').exists().notEmpty().isString(),
+  body('v').exists().notEmpty().custom(value => !isNaN(value))
+], async (req, res) => {
   try {
-    const address = req.body.contractAddress || req.body.collectionId
-    const userAddress = req.body.userAddress || req.body.owner
+    if (!validationResult(req).isEmpty()) {
+      return res.status(400).json({ message: 'Validation failed.', error: validationResult(req).array() })
+    }
 
-    if (!address || !userAddress) return res.status(400).json({ message: 'Missing required data in requst body.' })
+    const address = req.body.contractAddress
+    const userAddress = req.body.userAddress
 
-    const collection = await Collection.findOne({ address: address.toLowerCase() })
-    const token = await Token.findOne({ collectionId: address, tokenId: req.body.tokenId })
+    const collection = await Collection.findOne({ address: address.toLowerCase() }).select('chain')
+    const token = await Token.findOne({ collectionId: address, tokenId: req.body.tokenId }).populate('listings', { 'active': 1, '_id': 1 })
     if (!collection || !token) return res.status(400).json({ message: 'Invalid token or collection ID.'})
 
     const isTokenOwner = await TokenController.isOwnerOfToken(address, userAddress, req.body.tokenId, req.body.quantity)
@@ -29,8 +44,10 @@ router.post("/", async (req, res) => {
       return res.status(401).json({ message: 'Not the token owner.'})
     }
 
-    if (isTokenOwner.contractType === 'ERC721' && token.listings.length) {
-      return res.status(401).json({ message: 'Only one listing allowed at the same time.'})
+    if (isTokenOwner.contractType === 'ERC721') {
+      const listingsActive = token.listings.find((l) => l.active)
+      console.log({ listingsActive })
+      if (listingsActive) return res.status(401).json({ message: 'Only one listing allowed at the same time.'})
     }
 
     const listing = new Listing({...req.body, chain: collection.chain })

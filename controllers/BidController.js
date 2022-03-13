@@ -25,8 +25,11 @@ exports.cancel = async (data) => {
 
 exports.accept = async (data) => {
   try {
-    const contractAddress = data.nftContractAddress || data.nftContract
-    const userAddress = data.owner || data.seller
+    const contractAddress = data.nftContractAddress || data.contractAddress
+    const userAddress = data.owner || data.seller || data.userAddress
+
+    if (!data.buyer) throw ('Buyer is required')
+    
     const bid = await Bid.findOne({ 
       contractAddress,
       tokenId: data.tokenId,

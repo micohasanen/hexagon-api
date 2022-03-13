@@ -3,10 +3,10 @@ const TokenController = require("../controllers/TokenController")
 const Token = require("./Token")
 
 const ListingSchema = mongoose.Schema({
-  collectionId: {
+  contractAddress: {
     type: String,
     required: true,
-    alias: 'contractAddress',
+    alias: 'collectionId',
     lowercase: true,
     trim: true,
     index: true

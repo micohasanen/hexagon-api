@@ -8,14 +8,7 @@ const Collection = require("../models/Collection")
 // Utils
 const contractUtils = require("../utils/contractType")
 const GetProvider = require("../utils/ChainProvider")
-
-function isExpired (timestamp) {
-  const expiry = new Date(timestamp).getTime()
-  const now = new Date().getTime()
-
-  if (expiry < now / 1000) return true
-  return false
-}
+const { isExpired } = require("../utils/base")
 
 router.post("/", [
   body('collectionAddress').exists().notEmpty().isString(),
