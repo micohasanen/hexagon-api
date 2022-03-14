@@ -1,7 +1,6 @@
 const axios = require("axios")
 const { addMetadata, generateRarity } = require("../queue/Queue")
 const { nanoid } = require("nanoid")
-const Resize = require("../utils/ImageResizer")
 const { Moralis } = require("../utils/Moralis")
 
 // ABIs
@@ -163,8 +162,6 @@ exports.refreshMetadata = async function (id) {
     const token = await Token.findOne({ _id: id }).populate('tokenCollection').exec()
     if (!token || !token.tokenCollection) throw new Error('No token found.')
 
-    console.log(token.tokenCollection)
-
     const { Provider } = GetProvider(token.tokenCollection.chain)
     let tokenUri = ''
 
@@ -203,7 +200,17 @@ exports.refreshMetadata = async function (id) {
           if (!token.thumbnails) token.thumbnails = {}
 
           for (const quality of qualities) {
-            const buffer = await Resize(fetched.data.image, quality.settings)
+            const req = await axios({
+              method: 'post',
+              url: process.env.IMAGE_PROCESSING_API,
+              data: {
+                imagePath: fetched.data.image,
+                settings: quality.settings
+              },
+              responseType: 'arraybuffer',
+              reponseEncoding: 'binary'
+            })
+            const buffer = req.data
             const upload = new Moralis.File(`hexagon_${nanoid()}.jpg`, Array.from(buffer))
             await upload.saveIPFS({ useMasterKey: true })
             const hash = upload.hash()

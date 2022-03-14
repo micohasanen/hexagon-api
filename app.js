@@ -55,8 +55,6 @@ app.use(function(err, req, res) {
   res.sendStatus(err || 500);
 });
 
-const Resize = require("./utils/ImageResizer")
-
 app.listen(PORT, () => {
   // Setup Queue Workers
   require("./queue/Worker")()
