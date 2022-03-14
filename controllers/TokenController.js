@@ -163,11 +163,14 @@ exports.refreshMetadata = async function (id) {
     const token = await Token.findOne({ _id: id }).populate('tokenCollection').exec()
     if (!token || !token.tokenCollection) throw new Error('No token found.')
 
+    console.log(token.tokenCollection)
+
     const { Provider } = GetProvider(token.tokenCollection.chain)
     let tokenUri = ''
 
     if (!token.contractType) {
-      token.contractType = contractUtils.getContractType(Provider.eth.getCode(token.collectionId))
+      const code = await Provider.eth.getCode(token.collectionId)
+      token.contractType = contractUtils.getContractType(code)
     }
 
     if (token.contractType === 'ERC721') {
