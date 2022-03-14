@@ -1,11 +1,14 @@
 require("dotenv").config()
 const PORT = process.env.PORT || 5000
+const config = require("./config")
 
 const express = require("express")
 const cors = require("cors")
 const mongoose = require("mongoose")
 const morgan = require("morgan")
 const helmet = require("helmet")
+const xss = require("xss-clean")
+const rateLimiter = require("./middleware/RateLimiter")
 
 const app = express()
 app.use(cors())
@@ -13,6 +16,8 @@ app.use(express.json())
 app.use(express.urlencoded({ extended: true }))
 app.use(helmet())
 app.use(morgan('dev'))
+app.use(xss())
+app.use(rateLimiter)
 
 mongoose.connect(
   `mongodb+srv://${process.env.MONGO_USER}:${process.env.MONGO_PASS}@${process.env.MONGO_URL}/${process.env.MONGO_DB_NAME}?retryWrites=true&w=majority`)
@@ -49,6 +54,8 @@ app.use(function(err, req, res) {
 
   res.sendStatus(err || 500);
 });
+
+const Resize = require("./utils/ImageResizer")
 
 app.listen(PORT, () => {
   // Setup Queue Workers

@@ -1,5 +1,8 @@
 const axios = require("axios")
 const { addMetadata, generateRarity } = require("../queue/Queue")
+const { nanoid } = require("nanoid")
+const Resize = require("../utils/ImageResizer")
+const { Moralis } = require("../utils/Moralis")
 
 // ABIs
 const ABI_ERC721 = require("../abis/ERC721.json")
@@ -17,6 +20,15 @@ const contractUtils = require("../utils/contractType")
 // Holding the function signatures for unique functions for each contract
 const CHECKER_ERC721 = "0x70a08231"
 const CHECKER_ERC1155 = "0x4e1273f4"
+
+function createReadableStream (buffer) {
+  return new Promise((resolve) => {
+    const stream = Readable.from(buffer)
+    stream.on('readable', () => {
+      resolve(stream)
+    })
+  })
+}
 
 async function updateBalances (data) {
   try {
@@ -173,11 +185,32 @@ exports.refreshMetadata = async function (id) {
     console.log('Refreshing metadata for token', token.tokenId)
 
     if (tokenUri) {
-      if (tokenUri.startsWith('ipfs://')) tokenUri = tokenUri.replace('ipfs://', "https://gateway.ipfs.io/ipfs/")
+      if (tokenUri.startsWith('ipfs://')) tokenUri = tokenUri.replace('ipfs://', process.env.IPFS_GATEWAY)
       token.tokenUri = tokenUri
       const fetched = await axios.get(tokenUri)
 
       if (fetched.data) {
+        // Generate Thumbnail Images
+        if (token.metadata?.image !== fetched.data.image || !token.thumbnails?.small) {
+          const qualities = [
+            { size: 'small', settings: { height: null, width: 350, quality: 80 }},
+            { size: 'medium', settings: { height: null, width: 600, quality: 80 }}
+          ]
+
+          if (!token.thumbnails) token.thumbnails = {}
+
+          for (const quality of qualities) {
+            const buffer = await Resize(fetched.data.image, quality.settings)
+            const upload = new Moralis.File(`hexagon_${nanoid()}.jpg`, Array.from(buffer))
+            await upload.saveIPFS({ useMasterKey: true })
+            const hash = upload.hash()
+            
+            console.log({ hash })
+
+            token.thumbnails[quality.size] = `ipfs://${hash}`
+          }
+        }
+
         token.metadata = fetched.data
 
         if (fetched.data.attributes) {
