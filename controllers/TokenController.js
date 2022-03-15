@@ -20,13 +20,10 @@ const contractUtils = require("../utils/contractType")
 const CHECKER_ERC721 = "0x70a08231"
 const CHECKER_ERC1155 = "0x4e1273f4"
 
-function createReadableStream (buffer) {
-  return new Promise((resolve) => {
-    const stream = Readable.from(buffer)
-    stream.on('readable', () => {
-      resolve(stream)
-    })
-  })
+function resolveIpfs (path) {
+  if (path.startsWith('ipfs://'))
+    return path.replace('ipfs://', process.env.IPFS_GATEWAY)
+  return path
 }
 
 async function updateBalances (data) {
@@ -191,33 +188,17 @@ exports.refreshMetadata = async function (id) {
 
       if (fetched.data) {
         // Generate Thumbnail Images
-        if (token.metadata?.image !== fetched.data.image || !token.thumbnails?.small) {
-          const qualities = [
-            { size: 'small', settings: { height: null, width: 350, quality: 80 }},
-            { size: 'medium', settings: { height: null, width: 600, quality: 80 }}
-          ]
-
-          if (!token.thumbnails) token.thumbnails = {}
-
-          for (const quality of qualities) {
-            const req = await axios({
-              method: 'post',
-              url: process.env.IMAGE_PROCESSING_API,
-              data: {
-                imagePath: fetched.data.image,
-                settings: quality.settings
-              },
-              responseType: 'arraybuffer',
-              reponseEncoding: 'binary'
-            })
-            const buffer = req.data
+        if (token.metadata?.image !== fetched.data.image || !token.imageHosted) {
+          if (fetched.data.image.startsWith('ipfs://')) token.imageHosted = fetched.data.image
+          else {
+            const imageReq = await axios.get(resolveIpfs(fetched.data.image), { responseType: 'arraybuffer' })
+            const image = imageReq.data
+            const buffer = Buffer.from(image)
             const upload = new Moralis.File(`hexagon_${nanoid()}.jpg`, Array.from(buffer))
             await upload.saveIPFS({ useMasterKey: true })
             const hash = upload.hash()
-            
-            console.log({ hash })
-
-            token.thumbnails[quality.size] = `ipfs://${hash}`
+  
+            token.imageHosted = `ipfs://${hash}`
           }
         }
 

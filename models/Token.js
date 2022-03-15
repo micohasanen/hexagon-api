@@ -17,11 +17,7 @@ const TokenSchema = mongoose.Schema({
   },
   name: String,
   image: String,
-  thumbnails: {
-    small: String,
-    medium: String,
-    large: String
-  },
+  imageHosted: String,
   description: String,
   metadata: {
     type: mongoose.Schema.Types.Mixed,
