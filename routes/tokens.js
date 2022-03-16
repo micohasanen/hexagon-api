@@ -12,13 +12,4 @@ router.put("/:id/refresh-metadata", async (req, res) => {
   }
 })
 
-router.get("/test", async (req, res) => {
-  const token = await Token.findOne({ 
-    collectionId: '0xccc160f8cb0fc34eeba4725a8166598f1249069b', tokenId: 105 }).populate('listings').exec()
-
-  console.log(token)
-
-  res.sendStatus(200)
-})
-
 module.exports = router

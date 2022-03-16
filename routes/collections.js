@@ -137,12 +137,12 @@ router.post('/:address/tokens', async (req, res) => {
   let sort = req.query.sort || 'tokenId'
   let priceFrom = isNaN(req.query.priceFrom) ? null : req.query.priceFrom
   let priceTo = isNaN(req.query.priceTo) ? null : req.query.priceTo
+  let rarityFrom = isNaN(req.query.rarityFrom) ? null : req.query.rarityFrom
+  let rarityTo = isNaN(req.query.rarityTo) ? null : req.query.rarityTo
   let findQuery = { collectionId: req.params.address }
 
   if (isNaN(size) || size > 50) size = 50
   if (isNaN(page)) page = 0
-
-  console.log({ priceFrom, priceTo })
 
   if (req.body?.traits?.length) {
     const values = []
@@ -173,6 +173,15 @@ router.post('/:address/tokens', async (req, res) => {
     if (!findQuery.highestPrice) findQuery.highestPrice = {}
     findQuery.highestPrice.$exists = true
     findQuery.highestPrice.$lt = web3.utils.toWei(priceTo)
+  }
+
+  // Rarity filtering
+  if (rarityFrom || rarityTo) {
+    if (!findQuery.rarity) findQuery.rarity = { $exists: true }
+    if (rarityFrom) { 
+      findQuery.rarity.$gt = rarityFrom 
+    }
+    if (rarityTo) findQuery.rarity.$lt = rarityTo 
   }
 
   const count = await Token.countDocuments(findQuery)
