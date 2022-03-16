@@ -44,7 +44,8 @@ const AuctionSchema = mongoose.Schema({
   highestBidder: {
     type: String,
     lowercase: true,
-    trim: true
+    trim: true,
+    default: '0x0000000000000000000000000000000000000000'
   },
   bids: Array,
   active: {

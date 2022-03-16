@@ -5,10 +5,10 @@ const Sale = require("../models/Sale")
 exports.cancel = async (data) => {
   try {
     const bid = await Bid.findOne({ 
-      contractAddress: data.nftContractAddress,
-      tokenId: data.tokenId,
-      userAddress: data.owner,
-      nonce: data.nonce
+      contractAddress: data.nftContractAddress.toLowerCase(),
+      tokenId: Number(data.tokenId),
+      userAddress: data.owner.toLowerCase(),
+      nonce: Number(data.nonce)
     })
     if (!bid) throw new Error('No Bid found')
 
@@ -25,16 +25,16 @@ exports.cancel = async (data) => {
 
 exports.accept = async (data) => {
   try {
-    const contractAddress = data.nftContractAddress || data.contractAddress
-    const userAddress = data.owner || data.seller || data.userAddress
+    const contractAddress = (data.nftContractAddress || data.contractAddress).toLowerCase()
+    const userAddress = (data.owner || data.seller || data.userAddress).toLowerCase()
 
     if (!data.buyer) throw ('Buyer is required')
     
     const bid = await Bid.findOne({ 
       contractAddress,
-      tokenId: data.tokenId,
+      tokenId: Number(data.tokenId),
       userAddress,
-      nonce: data.nonce,
+      nonce: Number(data.nonce),
       active: true
      })
     if (!bid) throw new Error('No Bid found')
@@ -47,7 +47,7 @@ exports.accept = async (data) => {
     // Since the token changes ownership, we cancel all listings as well
     const listings = await Listing.find({ 
       contractAddress, 
-      tokenId: data.tokenId,
+      tokenId: Number(data.tokenId),
       userAddress 
     })
 
