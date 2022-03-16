@@ -2,6 +2,7 @@ const router = require("express").Router()
 const config = require("../config")
 const { nanoid } = require("nanoid")
 const parseDuration = require("parse-duration")
+const web3 = require("web3")
 
 // Queue
 const { generateRarity } = require("../queue/Queue")
@@ -134,7 +135,9 @@ router.post('/:address/tokens', async (req, res) => {
   let page = parseInt(req.query.page || 0)
   let size = parseInt(req.query.size || 20)
   let sort = req.query.sort || 'tokenId'
-  let findQuery = { collectionId: req.params.address }
+  let priceFrom = isNaN(req.query.priceFrom) ? null : req.query.priceFrom
+  let priceTo = isNaN(req.query.priceTo) ? null : req.query.priceTo
+  let findQuery = { collectionId: req.params.address, lowestPrice: {}, highestPrice: {} }
 
   if (isNaN(size) || size > 50) size = 50
   if (isNaN(page)) page = 0
@@ -157,6 +160,17 @@ router.post('/:address/tokens', async (req, res) => {
   else if (sort === 'highestBid') findQuery.highestBid = { $exists: true, $gt: 0 }
   else if (sort === "lastSoldAt") findQuery.lastSoldAt =  { $exists: true }
 
+  // Price filtering
+  if (priceFrom) {
+    findQuery.lowestPrice.$gt = web3.utils.toWei(priceFrom)
+    findQuery.lowestPrice.$exists = true
+  }
+
+  if (priceTo) {
+    findQuery.highestPrice.$exists = true
+    findQuery.highestPrice.$lt = web3.utils.toWei(priceTo)
+  }
+
   const count = await Token.countDocuments(findQuery)
   const totalPageCount = Math.ceil(count / size) - 1
   
@@ -172,7 +186,7 @@ router.post('/:address/tokens', async (req, res) => {
     page, 
     size,
     previousPage: page === 0 ? null : page - 1,
-    nextPage: page === totalPageCount ? page + 1 : null,
+    nextPage: page === totalPageCount ? null : page + 1,
     totalPageCount,
     results: tokens })
 })

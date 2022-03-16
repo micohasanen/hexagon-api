@@ -13,7 +13,6 @@ exports.addTransfer = async (data) => {
 }
 
 exports.addMetadata = async (tokenIdMongo) => {
-  await metadataQueue.remove(tokenIdMongo)
   await metadataQueue.add(nanoid(), tokenIdMongo, { jobId: tokenIdMongo })
 }
 
