@@ -23,7 +23,7 @@ router.post("/", [
       return res.status(400).json({ message: 'Validation failed.', error: validationResult(req).array() })
     }
 
-    const percentIncrement = req.body.percentIncrement
+    let percentIncrement = req.body.percentIncrement
     if (!percentIncrement || isNaN(percentIncrement) || percentIncrement < 50) 
       percentIncrement = 50
 
