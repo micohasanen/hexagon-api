@@ -2,7 +2,6 @@ const Auction = require("../models/Auction")
 
 exports.startAuction = async (data) => {
   try {
-    console.log(data)
     const auction = await Auction.findOne({ 
       collectionAddress: data.collectionAddress.toLowerCase(),
       owner: data.owner.toLowerCase(),

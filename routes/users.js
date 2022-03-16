@@ -1,6 +1,7 @@
 const router = require("express").Router()
 const Balance = require("../models/Balance")
 const Token = require("../models/Token")
+const Auction = require("../models/Auction")
 
 router.get("/:address/tokens", async (req, res) => {
   try {
@@ -24,10 +25,20 @@ router.get("/:address/tokens", async (req, res) => {
     .limit(size)
     .exec()
 
+    const auctionedItems = await Auction.find({
+      owner: req.params.address
+    })
+
     const results = []
     for (const balance of balances) {
-      const token = await Token.findOne({ collectionId: balance.collectionId, tokenId: balance.tokenId })
+      const token = await Token.findOne({ collectionId: balance.collectionId, tokenId: balance.tokenId }).select('-traits -metadata')
       results.push(token)
+    }
+
+    const auctioned = []
+    for (const item of auctionedItems) {
+      const token = await Token.findOne({ collectionId: item.collectionAddress, tokenId: item.tokenId }).select('-traits -metadata')
+      auctioned.push(token)
     }
 
     return res.status(200).json({ 
@@ -37,7 +48,8 @@ router.get("/:address/tokens", async (req, res) => {
       size,
       previousPage: page === 0 ? null : page - 1,
       nextPage: page === totalPageCount ? null : page + 1,
-      results 
+      results,
+      auctioned
     })
 
   } catch (error) {

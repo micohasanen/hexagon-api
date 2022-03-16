@@ -226,7 +226,7 @@ router.get('/:address/token/:tokenId', async (req, res) => {
 
     const auctions = await Auction.find({
       active: true,
-      collectionAddress: req.params.address,
+      collectionAddress: req.params.address.toLowerCase(),
       tokenId: req.params.tokenId
     })
 
