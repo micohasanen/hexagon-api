@@ -1,5 +1,5 @@
 const router = require("express").Router()
-const { body, validationResult } = require("express-validator")
+const { body, validationResult, check } = require("express-validator")
 const ABI_ERC20 = require("../abis/ERC20.json")
 
 // Models
@@ -104,6 +104,43 @@ router.delete("/:id", [AdminOnly], async (req, res) => {
     await bid.save()
 
     return res.status(204).json({ message: `Bid ${req.params.id} deleted successfully.`})
+  } catch (error) {
+    return res.status(500).json({ message: 'Something went wrong.', error })
+  }
+})
+
+// Check balance on token focus
+router.post('/validate-balance', async (req, res) => {
+  try {
+    if (!req.body?.bids?.length) return res.status(400).json({ message: 'Bids array required.' })
+    
+    const bids = await Bid.find({ _id: { $in: req.body.bids }})
+    const checkedBids = []
+    const collections = {}
+    
+    for (const b of bids) {
+      const bid = b.toObject()
+      if (!collections[bid.collectionId]) {
+        const collection = await Collection.findOne({ address: bid.collectionId })
+        collections[bid.collectionId] = collection
+      }
+
+      const collection = collections[bid.collectionId]
+      const balance = await checkBalance(
+        collection.chain, 
+        collection.currency.contract || process.env.DEFAULT_CURRENCY,
+        bid.userAddress
+      )
+
+      if (balance < Number(bid.pricePerItem) * Number(bid.quantity)) {
+        bid.active = false
+        await Bid.updateOne({ _id: bid._id }, { active: false })
+      }
+
+      checkedBids.push(bid)
+    }
+
+    return res.status(200).send(checkedBids)
   } catch (error) {
     return res.status(500).json({ message: 'Something went wrong.', error })
   }

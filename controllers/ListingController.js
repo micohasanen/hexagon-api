@@ -15,7 +15,7 @@ exports.cancel = async (data) => {
 
     listing.active = false
     listing.canceled = true
-    listing.r = listing.s = ''
+    listing.r = listing.s = 'null'
     await listing.save()
 
     return Promise.resolve(listing)
