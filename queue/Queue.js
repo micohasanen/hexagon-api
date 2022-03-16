@@ -13,7 +13,7 @@ exports.addTransfer = async (data) => {
 }
 
 exports.addMetadata = async (tokenIdMongo) => {
-  await metadataQueue.add(nanoid(), tokenIdMongo, { jobId: tokenIdMongo })
+  await metadataQueue.add(nanoid(), tokenIdMongo)
 }
 
 exports.generateRarity = async (collectionAddress) => {
