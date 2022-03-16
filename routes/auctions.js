@@ -41,7 +41,7 @@ router.post("/", [
         return res.status(400).json({ message: 'Quantity must be 1 for this token type.' })
     }
 
-    const auction = new Auction({ ...req.body, active: false })
+    const auction = new Auction({ ...req.body, active: true })
     await auction.save()
 
     return res.status(200).send(auction)

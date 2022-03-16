@@ -11,6 +11,7 @@ const { FlowProducer } = require("bullmq")
 const Collection = require("../models/Collection")
 const Token = require("../models/Token")
 const Listing = require("../models/Listing")
+const Auction = require("../models/Auction")
 const Sale = require("../models/Sale")
 const Balance = require("../models/Balance")
 
@@ -196,7 +197,13 @@ router.get('/:address/token/:tokenId', async (req, res) => {
                         .exec()
     if (!token) return res.status(404).json({ message: 'No token found.' })
 
-    return res.status(200).send(token)
+    const auctions = await Auction.find({
+      active: true,
+      collectionAddress: req.params.address,
+      tokenId: req.params.tokenId
+    })
+
+    return res.status(200).send({ ...token.toObject(), auctions })
   } catch (error) {
     return res.status(500).json({ message: 'Something went wrong.', error })
   }
