@@ -137,10 +137,12 @@ router.post('/:address/tokens', async (req, res) => {
   let sort = req.query.sort || 'tokenId'
   let priceFrom = isNaN(req.query.priceFrom) ? null : req.query.priceFrom
   let priceTo = isNaN(req.query.priceTo) ? null : req.query.priceTo
-  let findQuery = { collectionId: req.params.address, lowestPrice: {}, highestPrice: {} }
+  let findQuery = { collectionId: req.params.address }
 
   if (isNaN(size) || size > 50) size = 50
   if (isNaN(page)) page = 0
+
+  console.log({ priceFrom, priceTo })
 
   if (req.body?.traits?.length) {
     const values = []
@@ -162,11 +164,13 @@ router.post('/:address/tokens', async (req, res) => {
 
   // Price filtering
   if (priceFrom) {
+    if (!findQuery.lowestPrice) findQuery.lowestPrice = {}
     findQuery.lowestPrice.$gt = web3.utils.toWei(priceFrom)
     findQuery.lowestPrice.$exists = true
   }
 
   if (priceTo) {
+    if (!findQuery.highestPrice) findQuery.highestPrice = {}
     findQuery.highestPrice.$exists = true
     findQuery.highestPrice.$lt = web3.utils.toWei(priceTo)
   }

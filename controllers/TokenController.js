@@ -307,6 +307,8 @@ exports.logListing = async (data) => {
     })
     const calc = getHighestAndLowestPrice(prices)
 
+    console.log(calc)
+
     token.highestPrice = calc.highestPrice
     token.lowestPrice = calc.lowestPrice
 

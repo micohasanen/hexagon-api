@@ -72,6 +72,9 @@ TokenSchema.pre('save', function (next) {
   if (this.metadata?.name) this.name = this.metadata.name
   if (this.metadata?.image) this.image = this.metadata.image
   if (this.metadata?.description) this.description = this.metadata.description
+
+  /*if (isNaN(this.highestBid)) this.highestBid = 0
+  if (isNaN(this.highestPrice)) this.highestPrice = 0*/
   next()
 })
 
