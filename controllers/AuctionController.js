@@ -2,9 +2,10 @@ const Auction = require("../models/Auction")
 
 exports.startAuction = async (data) => {
   try {
+    console.log(data)
     const auction = await Auction.findOne({ 
-      collectionAddress: data.collectionAddress,
-      owner: data.owner,
+      collectionAddress: data.collectionAddress.toLowerCase(),
+      owner: data.owner.toLowerCase(),
       tokenId: data.tokenId
     })
     if (!auction) throw new Error('No auction found')
@@ -21,7 +22,6 @@ exports.startAuction = async (data) => {
 // AuctionBid(address indexed collectionAddress, uint indexed tokenId, address indexed bidder, address indexed owner, uint bid);
 exports.placeBid = async (data) => {
   try {
-    console.log(data)
     const auction = await Auction.findOne({ 
       collectionAddress: data.collectionAddress.toLowerCase(),
       owner: data.owner.toLowerCase(),
