@@ -4,7 +4,9 @@ const GetProvider = require("../utils/ChainProvider")
 const { addMetadata } = require("../queue/Queue")
 
 const TransferSchema = mongoose.Schema({
-  blockTimestamp: String,
+  blockTimestamp: {
+    type: Date
+  },
   blockNumber: Number,
   contractType: String,
   transactionType: String,
