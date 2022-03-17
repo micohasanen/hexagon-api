@@ -1,6 +1,8 @@
 const mongoose = require("mongoose")
-const Token = require("../models/Token")
 const { addMetadata } = require("../queue/Queue")
+
+// Models
+const Token = require("./Token")
 const Collection = require("./Collection")
 
 const SaleSchema = mongoose.Schema({
