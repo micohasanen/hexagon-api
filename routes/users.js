@@ -31,14 +31,19 @@ router.get("/:address/tokens", async (req, res) => {
 
     const results = []
     for (const balance of balances) {
-      const token = await Token.findOne({ collectionId: balance.collectionId, tokenId: balance.tokenId }).select('-traits -metadata')
+      const token = await Token.findOne({ collectionId: balance.collectionId, tokenId: balance.tokenId })
+                          .populate('listings')
+                          .populate('bids')
+                          .populate('transfers')
+                          .select('-traits -metadata')
+                          .exec()
       results.push(token)
     }
 
     const auctioned = []
     for (const item of auctionedItems) {
       const token = await Token.findOne({ collectionId: item.collectionAddress, tokenId: item.tokenId }).select('-traits -metadata')
-      auctioned.push(token)
+      auctioned.push({ ...token.toObject(), auction: item })
     }
 
     return res.status(200).json({ 
@@ -53,7 +58,7 @@ router.get("/:address/tokens", async (req, res) => {
     })
 
   } catch (error) {
-    return res.status(500).json({ message: 'Something went wrong.' })
+    return res.status(500).json({ message: 'Something went wrong.', error })
   }
 })
 
