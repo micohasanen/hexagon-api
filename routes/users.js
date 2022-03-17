@@ -42,8 +42,12 @@ router.get("/:address/tokens", async (req, res) => {
 
     const auctioned = []
     for (const item of auctionedItems) {
-      const token = await Token.findOne({ collectionId: item.collectionAddress, tokenId: item.tokenId }).select('-traits -metadata')
-      auctioned.push({ ...token.toObject(), auction: item })
+      const token = await Token.findOne({ collectionId: item.collectionAddress, tokenId: item.tokenId })
+      .select('-traits -metadata')
+      .populate('auctions')
+      .exec()
+
+      auctioned.push(token)
     }
 
     return res.status(200).json({ 

@@ -192,8 +192,10 @@ router.post('/:address/tokens', async (req, res) => {
     .sort(sort)
     .skip(page * size)
     .limit(size)
+    .populate('auctions')
+    .select('-traits -metadata')
     .exec()
-  
+
   return res.status(200).json({ 
     total: count, 
     page, 
@@ -221,16 +223,11 @@ router.get('/:address/token/:tokenId', async (req, res) => {
                         .populate('listings')
                         .populate('bids')
                         .populate('transfers')
+                        .populate('auctions')
                         .exec()
     if (!token) return res.status(404).json({ message: 'No token found.' })
 
-    const auctions = await Auction.find({
-      active: true,
-      collectionAddress: req.params.address.toLowerCase(),
-      tokenId: req.params.tokenId
-    })
-
-    return res.status(200).send({ ...token.toObject(), auctions })
+    return res.status(200).send(token)
   } catch (error) {
     return res.status(500).json({ message: 'Something went wrong.', error })
   }

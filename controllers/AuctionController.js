@@ -1,5 +1,8 @@
 const Auction = require("../models/Auction")
 
+// Controllers
+const TokenController = require("../controllers/TokenController")
+
 exports.startAuction = async (data) => {
   try {
     const auction = await Auction.findOne({ 
@@ -10,7 +13,13 @@ exports.startAuction = async (data) => {
     if (!auction) throw new Error('No auction found')
 
     auction.active = true
+
+    if (data.blockNumber) auction.blockNumber = data.blockNumber
+    if (data.transactionHash) auction.transactionHash = data.transactionHash
+
     await auction.save()
+
+    TokenController.logAuction(auction)
 
     return Promise.resolve(true)
   } catch(error) {

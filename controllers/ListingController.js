@@ -26,7 +26,6 @@ exports.cancel = async (data) => {
 
 exports.accept = async (data) => {
   try {
-    console.log(data)
     const contractAddress = (data.nftContractAddress || data.contractAddress).toLowerCase()
     const userAddress = (data.owner || data.seller || data.userAddress).toLowerCase()
 
@@ -45,6 +44,8 @@ exports.accept = async (data) => {
     listing.active = false
     listing.accepted = true
     listing.r = listing.s = 'null'
+    if (data.blockNumber) listing.blockNumber = data.blockNumber
+    if (data.transactionHash) listing.transactionHash = data.transactionHash
     await listing.save()
 
     // Token changes ownership so we remove all bids

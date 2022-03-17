@@ -42,6 +42,8 @@ exports.accept = async (data) => {
     bid.active = false
     bid.accepted = true
     bid.r = bid.s = 'null'
+    if (data.blockNumber) bid.blockNumber = data.blockNumber
+    if (data.transactionHash) bid.transactionHash = data.transactionHash
     await bid.save()
 
     // Since the token changes ownership, we cancel all listings as well

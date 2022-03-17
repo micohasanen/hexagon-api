@@ -65,6 +65,13 @@ const ListingSchema = mongoose.Schema({
   accepted: {
     type: Boolean,
     default: false
+  },
+  blockNumber: Number,
+  blockTimestamp: Date,
+  transactionHash: {
+    type: String,
+    lowercase: true,
+    trim: true
   }
 }, { timestamps: true })
 
