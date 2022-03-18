@@ -1,8 +1,6 @@
 const { ethers } = require("ethers")
 const jwt = require("jsonwebtoken")
 
-const chainId = process.env.NODE_ENV === 'development' ? 80001 : 137
-
 function getDomain (chainId) {
   return {
     name : "HEXAGONMarketplace",
