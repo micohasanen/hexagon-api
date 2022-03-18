@@ -12,6 +12,7 @@ const ListingController = require("../controllers/ListingController")
 
 // Middleware
 const AdminOnly = require("../middleware/Auth_AdminOnly")
+const { verifyListing } = require("../middleware/VerifySignature")
 const { isExpired } = require("../utils/base")
 
 router.post("/", [
@@ -24,7 +25,8 @@ router.post("/", [
   body('nonce').exists().notEmpty().custom(value => !isNaN(value) && value > 0),
   body('r').exists().notEmpty().isString(),
   body('s').exists().notEmpty().isString(),
-  body('v').exists().notEmpty().custom(value => !isNaN(value))
+  body('v').exists().notEmpty().custom(value => !isNaN(value)),
+  verifyListing
 ], async (req, res) => {
   try {
     if (!validationResult(req).isEmpty()) {
@@ -46,8 +48,7 @@ router.post("/", [
 
     if (isTokenOwner.contractType === 'ERC721') {
       const listingsActive = token.listings.find((l) => l.active)
-      console.log({ listingsActive })
-      if (listingsActive) return res.status(401).json({ message: 'Only one listing allowed at the same time.'})
+      if (listingsActive) return res.status(403).json({ message: 'Only one listing allowed at the same time.'})
     }
 
     const listing = new Listing({...req.body, chain: collection.chain })
