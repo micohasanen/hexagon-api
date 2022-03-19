@@ -79,6 +79,7 @@ const typesBid = {
 
 exports.verifyListing = async (req, res, next) => {
   try {
+    if (process.env.NODE_ENV === 'localhost') return next()
     if (!req.headers.authorization) return res.status(401).json({ message: 'Signature token missing.' })
 
     const token = req.headers.authorization.replace('Bearer ', '')
@@ -105,6 +106,7 @@ exports.verifyListing = async (req, res, next) => {
 
 exports.verifyBid = async (req, res, next) => {
   try {
+    if (process.env.NODE_ENV === 'localhost') return next()
     if (!req.headers.authorization) return res.status(401).json({ message: 'Signature token missing.' })
 
     const token = req.headers.authorization.replace('Bearer ', '')
