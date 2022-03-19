@@ -92,7 +92,6 @@ exports.verifyListing = async (req, res, next) => {
     const signature = tokenData.data
 
     const verifiedAddress = ethers.utils.verifyTypedData(getDomain(tokenData.chain), typesListing, listing, signature)
-    console.log({ verifiedAddress, tokenData })
     
     if (verifiedAddress.toLowerCase() !== listing.userAddress.toLowerCase())
       return res.status(401).json({ message: 'Signature mismatch.' })

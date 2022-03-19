@@ -12,6 +12,7 @@ const BidController = require("../controllers/BidController")
 
 // Middleware
 const AdminOnly = require("../middleware/Auth_AdminOnly")
+const { verifyBid } = require("../middleware/VerifySignature")
 
 // Utils
 const GetProvider = require("../utils/ChainProvider")
@@ -36,7 +37,8 @@ router.post("/", [
   body('nonce').exists().notEmpty().custom(value => !isNaN(value) && value > 0),
   body('r').exists().notEmpty().isString(),
   body('s').exists().notEmpty().isString(),
-  body('v').exists().notEmpty().custom(value => !isNaN(value))
+  body('v').exists().notEmpty().custom(value => !isNaN(value)),
+  verifyBid
 ], async (req, res) => {
   try {
     const address = (req.body.contractAddress || req.body.collectionId).toLowerCase()
