@@ -1,5 +1,6 @@
 const router = require("express").Router()
 const { body, validationResult, check } = require("express-validator")
+const { expireBid } = require("../queue/Queue")
 const ABI_ERC20 = require("../abis/ERC20.json")
 
 // Models
@@ -99,7 +100,11 @@ router.post("/", [
     bid.active = true
     await bid.save()
 
+<<<<<<< HEAD
     sendNotification(bid)
+=======
+    expireBid(bid._id, bid.expiry)
+>>>>>>> master
 
     res.status(200).send(bid)
   } catch (error) {

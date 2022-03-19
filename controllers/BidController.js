@@ -74,3 +74,21 @@ exports.accept = async (data) => {
     return Promise.reject(error)
   }
 }
+
+exports.expire = async (id) => {
+  try {
+    const bid = await Bid.findOne({ _id: id })
+    if (!bid) throw new Error('No listing found')
+
+    const now = new Date().getTime() / 1000
+    if (bid.expiry <= now) { 
+      bid.active = false 
+      bid.r = bid.s = 'null'
+      await bid.save()
+    }
+
+    return Promise.resolve(bid)
+  } catch (error) {
+    return Promise.reject(error)
+  }
+}
