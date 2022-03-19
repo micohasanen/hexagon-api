@@ -307,8 +307,6 @@ exports.logListing = async (data) => {
     })
     const calc = getHighestAndLowestPrice(prices)
 
-    console.log(calc)
-
     token.highestPrice = calc.highestPrice
     token.lowestPrice = calc.lowestPrice
 
@@ -351,6 +349,21 @@ exports.logBid = async (data) => {
     await token.save()
 
     return Promise.resolve(token)
+  } catch (error) {
+    return Promise.reject(error)
+  }
+}
+
+exports.logAuction = async (auction) => {
+  try {
+    const token = await Token.findOne({
+      tokenId: auction.tokenId,
+      collectionId: auction.collectionAddress
+    })
+
+    if (token) {
+      await token.syncAuctions()
+    }
   } catch (error) {
     return Promise.reject(error)
   }

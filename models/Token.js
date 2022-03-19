@@ -1,6 +1,5 @@
 const mongoose = require("mongoose")
-const { Moralis } = require("../utils/Moralis")
-const { addMetadata } = require("../queue/Queue")
+const Auction = require("./Auction")
 
 const TokenSchema = mongoose.Schema({
   tokenId: {
@@ -34,6 +33,7 @@ const TokenSchema = mongoose.Schema({
   transfers: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Transfer' }],
   listings: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Listing' }],
   bids: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Bid' }],
+  auctions: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Auction' }],
   highestPrice: {
     type: Number,
     default: 0
@@ -75,8 +75,6 @@ TokenSchema.pre('save', function (next) {
   if (this.metadata?.image) this.image = this.metadata.image
   if (this.metadata?.description) this.description = this.metadata.description
 
-  /*if (isNaN(this.highestBid)) this.highestBid = 0
-  if (isNaN(this.highestPrice)) this.highestPrice = 0*/
   next()
 })
 
@@ -86,5 +84,20 @@ TokenSchema.virtual('tokenCollection', {
   foreignField: 'address',
   justOne: true
 })
+
+TokenSchema.methods.syncAuctions = async function () {
+  const auctions = await Auction.find({ 
+    active: true,
+    collectionAddress: this.collectionId,
+    tokenId: this.tokenId
+  }).distinct('_id')
+
+  if (auctions?.length) { 
+    this.auctions = auctions 
+    await this.save()
+  }
+
+  return true
+}
 
 module.exports = mongoose.model('Token', TokenSchema)

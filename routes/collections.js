@@ -12,9 +12,10 @@ const { FlowProducer } = require("bullmq")
 const Collection = require("../models/Collection")
 const Token = require("../models/Token")
 const Listing = require("../models/Listing")
-const Auction = require("../models/Auction")
+const Bid = require("../models/Bid")
 const Sale = require("../models/Sale")
 const Balance = require("../models/Balance")
+const Transfer = require("../models/Transfer")
 
 // Controllers
 const TokenController = require("../controllers/TokenController")
@@ -192,8 +193,10 @@ router.post('/:address/tokens', async (req, res) => {
     .sort(sort)
     .skip(page * size)
     .limit(size)
+    .populate('auctions')
+    .select('-traits -metadata')
     .exec()
-  
+
   return res.status(200).json({ 
     total: count, 
     page, 
@@ -221,16 +224,89 @@ router.get('/:address/token/:tokenId', async (req, res) => {
                         .populate('listings')
                         .populate('bids')
                         .populate('transfers')
+                        .populate('auctions')
                         .exec()
     if (!token) return res.status(404).json({ message: 'No token found.' })
 
-    const auctions = await Auction.find({
-      active: true,
-      collectionAddress: req.params.address.toLowerCase(),
-      tokenId: req.params.tokenId
-    })
+    return res.status(200).send(token)
+  } catch (error) {
+    return res.status(500).json({ message: 'Something went wrong.', error })
+  }
+})
 
-    return res.status(200).send({ ...token.toObject(), auctions })
+router.get("/:address/activity", async (req, res) => {
+  try {
+    let period = parseDuration(req.query.period)
+    if (!period) period = 86400000 // 1d
+
+    let endDate = new Date().getTime()
+    if (req.query.timestamp) endDate = new Date(req.query.timestamp).getTime()
+
+    const startDate = endDate - period
+
+    if (!req.query.include) return res.status(400).json({ message: 'Please specify which events to include.' })
+
+    let results = []
+
+    if (req.query.include.includes('sales')) {
+      const sales = await Sale.find({
+        collectionId: req.params.address,
+        timestamp: { $gte: startDate, $lte: endDate }
+      }).lean().exec()
+
+      for (const sale of sales) {
+        sale.activityType = 'sale'
+      }
+
+      results.push(...sales)
+    }
+
+    if (req.query.include.includes('listings')) {
+      const listings = await Listing.find({
+        contractAddress: req.params.address,
+        createdAt: { $gte: startDate, $lte: endDate }
+      }).lean().exec()
+
+      for (const listing of listings) {
+        listing.timestamp = listing.createdAt
+        listing.activityType = 'listing'
+      }
+
+      results.push(...listings)
+    }
+
+    if (req.query.include.includes('bids')) {
+      const bids = await Bid.find({
+        contractAddress: req.params.address,
+        createdAt: { $gte: startDate, $lte: endDate }
+      }).lean().exec()
+
+      for (const bid of bids) {
+        bid.timestamp = bid.createdAt
+        bid.activityType = 'bid'
+      }
+
+      results.push(...bids)
+    }
+
+    if (req.query.include.includes('transfers')) {
+      const transfers = await Transfer.find({
+        tokenAddress: req.params.address,
+        createdAt: { $gte: startDate, $lte: endDate } // This should be sorted by block timestamp, will do later
+      }).lean().exec()
+
+      for (const transfer of transfers) {
+        transfer.timestamp = transfer.blockTimestamp ? new Date(transfer.blockTimestamp) : transfer.createdAt
+        transfer.activityType = 'transfer'
+      }
+
+      results.push(...transfers)
+    }
+
+    results = results.sort((a, b) => { return b.timestamp - a.timestamp })
+
+    res.status(200).json({ total: results.length, results })
+
   } catch (error) {
     return res.status(500).json({ message: 'Something went wrong.', error })
   }
