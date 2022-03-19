@@ -1,5 +1,5 @@
 const config = require('../config')
-const { Worker } = require("bullmq")
+const { Worker, jobIdForGroup } = require("bullmq")
 
 // Controllers
 const TransferController = require("../controllers/TransferController")
@@ -38,6 +38,8 @@ module.exports = () => {
       ListingController.accept(job.data)
     } else if (job.data.eventType === 'canceled') {
       ListingController.cancel(job.data)
+    } else if (job.data.eventType === 'expiry') {
+      ListingController.expire(job.data.id)
     }
   }, { connection: config.redisConnection })
 
@@ -47,6 +49,8 @@ module.exports = () => {
       BidController.accept(job.data)
     } else if (job.data.eventType === 'canceled') {
       BidController.cancel(job.data)
+    } else if (job.data.eventType === 'expiry') {
+      BidController.expire(job.data.id)
     }
   }, { connection: config.redisConnection })
 
@@ -58,6 +62,8 @@ module.exports = () => {
       AuctionController.placeBid(job.data)
     } else if (job.data.eventType === 'concluded') {
       AuctionController.endAuction(job.data)
+    } else if (job.data.eventType === 'expiry') {
+      AuctionController.expire(job.data.id)
     }
   }, { connection: config.redisConnection })
 }

@@ -1,5 +1,6 @@
 const router = require("express").Router()
 const { body, validationResult } = require("express-validator")
+const { expireListing } = require("../queue/Queue")
 
 // Models
 const Listing = require("../models/Listing")
@@ -54,6 +55,8 @@ router.post("/", [
     const listing = new Listing({...req.body, chain: collection.chain })
     listing.active = true
     await listing.save() // -> After Save, updates to token listings
+
+    expireListing(listing._id, listing.expiry)
 
     return res.status(200).send(listing)
   } catch (error) {

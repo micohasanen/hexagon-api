@@ -1,4 +1,5 @@
 const Auction = require("../models/Auction")
+const { expireAuction } = require("../queue/Queue")
 
 // Controllers
 const TokenController = require("../controllers/TokenController")
@@ -20,6 +21,7 @@ exports.startAuction = async (data) => {
     await auction.save()
 
     TokenController.logAuction(auction)
+    expireAuction(auction._id, auction.expiry)
 
     return Promise.resolve(true)
   } catch(error) {
@@ -49,6 +51,8 @@ exports.placeBid = async (data) => {
 
     await auction.save()
 
+    // Send notification to owner
+
     return Promise.resolve(true)
   } catch(error) {
     return Promise.reject(error)
@@ -71,7 +75,26 @@ exports.endAuction = async (data) => {
     await auction.save()
 
     return Promise.resolve(true)
-  } catch(error) {
+  } catch (error) {
+    return Promise.reject(error)
+  }
+}
+
+exports.expire = async (id) => {
+  try {
+    const auction = await Auction.findOne({ _id: id })
+    if (!auction) throw new Error('No auction found')
+
+    const now = new Date().getTime() / 1000
+    if (auction.expiry <= now) {
+      auction.active = false
+      await auction.save()
+
+      // Send notification to owner
+    }
+
+    return Promise.resolve(auction)
+  } catch (error) {
     return Promise.reject(error)
   }
 }
