@@ -27,7 +27,8 @@ router.get("/:address/tokens", async (req, res) => {
     .exec()
 
     const auctionedItems = await Auction.find({
-      owner: req.params.address
+      owner: req.params.address,
+      active: true
     })
 
     const results = []
