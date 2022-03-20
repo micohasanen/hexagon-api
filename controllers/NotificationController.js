@@ -7,7 +7,8 @@ const templates = {
   sale: 'Your item, {info.tokenName}, has sold for {value} {info.currency}!',
   bid: 'New bid for {value} {info.currency} on {info.tokenName}',
   auctionEndedSold: 'Auction for {info.tokenName} has ended. Your item sold for {value} {info.currency}!',
-  auctionEndedNotSold: 'Auction for {info.tokenName} has ended. Your item did not receive any bids.'
+  auctionEndedNotSold: 'Auction for {info.tokenName} has ended. Your item did not receive any bids.',
+  auctionBid: 'You have received a new bid for {info.tokenName} of {value} {info.currency}!'
 }
 
 function resolveVariable (data, param) {
@@ -51,7 +52,7 @@ exports.addNotification = async (data) => {
     if (!data.info?.tokenName && data.info.tokenId && collectionId) {
       const token = await Token.findOne({ tokenId: data.info.tokenId, collectionId })
       data.info.tokenName = token.name
-      data.info.tokenImage = token.image
+      data.info.tokenImage = token.imageHosted || token.image
     }
 
     const re = new RegExp(/(?<={).*?(?=})/g)

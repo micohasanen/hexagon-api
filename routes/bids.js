@@ -100,11 +100,8 @@ router.post("/", [
     bid.active = true
     await bid.save()
 
-<<<<<<< HEAD
     sendNotification(bid)
-=======
     expireBid(bid._id, bid.expiry)
->>>>>>> master
 
     res.status(200).send(bid)
   } catch (error) {
