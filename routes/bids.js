@@ -7,9 +7,11 @@ const ABI_ERC20 = require("../abis/ERC20.json")
 const Bid = require("../models/Bid")
 const Collection = require("../models/Collection")
 const Listing = require("../models/Listing")
+const Balance = require("../models/Balance")
 
 // Controllers
 const BidController = require("../controllers/BidController")
+const NotificationController = require("../controllers/NotificationController")
 
 // Middleware
 const AdminOnly = require("../middleware/Auth_AdminOnly")
@@ -26,6 +28,26 @@ async function checkBalance(chain, currency, user) { // Supports ERC20
   const balance = await contract.methods.balanceOf(user).call()
 
   return balance
+}
+
+async function sendNotification (bid) {
+  const owner = await Balance.find({ 
+    collectionId: bid.contractAddress, 
+    tokenId: bid.tokenId
+  })
+
+  if (owner && owner.length === 1) { // Only sending notification to tokens that have one owner
+    delete bid.r
+    delete bid.s
+    delete bid.v
+
+    NotificationController.addNotification({
+      receiver: owner[0].address,
+      notificationType: 'bid',
+      value: bid.pricePerItem,
+      info: { ...bid.toObject() }
+    })
+  }
 }
 
 router.post("/", [
@@ -78,6 +100,7 @@ router.post("/", [
     bid.active = true
     await bid.save()
 
+    sendNotification(bid)
     expireBid(bid._id, bid.expiry)
 
     res.status(200).send(bid)
