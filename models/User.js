@@ -5,14 +5,21 @@ const UserSchema = mongoose.Schema({
     type: String,
     required: true,
     unique: true,
-    index: true
+    index: true,
+    lowercase: true,
+    trim: true
   },
-  role: String
-})
-
-UserSchema.pre('save', function (next) {
-  this.address = this.address.toLowerCase()
-  next()
-})
+  role: String,
+  socials: [{
+    name: String,
+    href: String
+  }],
+  username: String,
+  description: String,
+  images: {
+    banner: String,
+    profile: String
+  }
+}, { timestamps: true })
 
 module.exports = mongoose.model('User', UserSchema)

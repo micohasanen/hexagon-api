@@ -1,5 +1,6 @@
 const { ethers } = require("ethers")
 const jwt = require("jsonwebtoken")
+const Web3Token = require('web3-token')
 
 function getDomain (chainId) {
   return {
@@ -128,5 +129,23 @@ exports.verifyBid = async (req, res, next) => {
   } catch (error) {
     console.log(error)
     return res.status(401).json({ message: 'Signature mismatch.' })
+  }
+}
+
+exports.extractUser = async (req, res, next) => {
+  try {
+    let token = req.headers.authorization || ''
+    if (!token) return res.status(401).json({ message: 'Unauthorized: No auth token set.' })
+    token = token.replace('Bearer ', '')
+  
+    const { address, body } = Web3Token.verify(token)
+    if (!address) return res.status(401).json({ message: 'Unauthorized.' })
+
+    req.user = { address }
+
+    next()
+  } catch (error) {
+    console.log(error)
+    return res.status(401).json({ message: 'Unauthorized.' })
   }
 }

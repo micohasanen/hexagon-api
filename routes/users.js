@@ -1,8 +1,14 @@
 const router = require("express").Router()
+
+// Models
 const Balance = require("../models/Balance")
 const Token = require("../models/Token")
 const Auction = require("../models/Auction")
 const Notification = require("../models/Notification")
+const User = require("../models/User")
+
+// Middleware
+const { extractUser } = require("../middleware/VerifySignature")
 
 router.get("/:address/tokens", async (req, res) => {
   try {
@@ -95,6 +101,19 @@ router.get('/:address/notifications', async (req, res) => {
       previousPage: page === 0 ? null : page - 1,
       results: notifications 
     })
+  } catch (error) {
+    return res.status(500).json({ message: 'Something went wrong.', error })
+  } 
+})
+
+router.post('/me', [extractUser], async (req, res) => {
+  try {
+    if (!req.user?.address || !req.body) return res.status(400).json({ message: 'Missing required parameters.' })
+    if (req.body.role) delete req.body.role
+
+    const user = await User.findOneAndUpdate({ address: req.user.address }, { ...req.body }, { upsert: true, new: true })
+
+    return res.status(200).send(user)
   } catch (error) {
     return res.status(500).json({ message: 'Something went wrong.', error })
   } 

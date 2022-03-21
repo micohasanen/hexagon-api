@@ -71,7 +71,10 @@ const CollectionSchema = mongoose.Schema({
   whitelisted: Boolean,
   pending: Boolean,
   verified: Boolean,
-  socials: Array,
+  socials: [{
+    name: String,
+    href: String
+  }],
   traits: Array,
   owner: { 
     type: String,
@@ -90,7 +93,11 @@ const CollectionSchema = mongoose.Schema({
     decimals: Number
   },
   volume: TotalingSchema,
-  sales: TotalingSchema
+  sales: TotalingSchema,
+  categories: [{
+    id: String,
+    name: String
+  }]
 }, { timestamps: true })
 
 

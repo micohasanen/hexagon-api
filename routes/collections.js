@@ -351,14 +351,20 @@ router.post('/', async (req, res) => {
   }
 })
 
-router.put("/:address", async (req, res) => {
+router.put("/:address", [OnlyOwner], async (req, res) => {
   try {
     if (!req.body) return res.status(400).json({ message: 'No request body.' })
 
     const collection = await Collection.findOne({ address: req.params.address })
     if (!collection) return res.status(404).json({ message: 'No collection found.' })
 
-    if (req.body.traits) delete req.body.traits
+    const forbiddenFields = [
+      'traits', 'volume', 'sales', 'pending', 'currency', 'contractType'
+    ]
+
+    for (const field of forbiddenFields) {
+      if (req.body[field]) delete req.body[field]
+    }
 
     Object.entries(req.body).forEach(([key, val]) => {
       collection[key] = val
