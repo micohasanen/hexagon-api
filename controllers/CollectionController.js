@@ -24,6 +24,7 @@ exports.generateRarity = async (address) => {
     if (!collection) throw new Error('No collection found.')
 
     console.log('Rarity generation started for' , address)
+    const excluded = collection.excludeFromRarity || []
 
     const tokens = await TokenController.getAllForCollection(address)
     if (tokens.length) collection.traits = []
@@ -37,8 +38,20 @@ exports.generateRarity = async (address) => {
 
         let trait = collection.traits.find((t) => t.type === attr.trait_type)
         if (!trait) {
-          traits.push({ type: attr.trait_type, attributes: [], traitCount: 0 })
+          const traitModel = { type: attr.trait_type, attributes: [], traitCount: 0 }
+          if (attr.display_type) traitModel.display_type = attr.display_type
+
+          traits.push(traitModel)
           trait = traits[traits.length - 1]
+        }
+
+        if (typeof attr.value === 'number') {
+          trait.isNumeric = true
+          if (!trait.maxValue) trait.maxValue = attr.value
+          if (!trait.minValue) trait.minValue = attr.value
+
+          if (attr.value > trait.maxValue) trait.maxValue = attr.value
+          if (attr.value < trait.minValue) trait.minValue = attr.value
         }
 
         const attribute = trait.attributes.find(a => a.value === attr.value)
@@ -47,30 +60,33 @@ exports.generateRarity = async (address) => {
           trait.traitCount += 1
         } else {
           trait.traitCount += 1
-          trait.attributes.push({ value: attr.value, count: 1, id: nanoid() })
+          if (!trait.isNumeric)
+            trait.attributes.push({ value: attr.value, count: 1, id: nanoid() })
         }
       }
     })
 
     // Calculate Trait Rarity
-    const qty = tokens.length
-    let scores = []
-    traits.forEach((trait) => {
-      for (const attr of trait.attributes) {
-        attr.rarityPercent = attr.count / qty * 100
-        attr.rarityFractional = attr.rarityPercent * 0.01
-        attr.rarityScore = 1 / attr.rarityFractional
-        scores.push(attr)
-      }
+      const qty = tokens.length
+      let scores = []
+      traits.forEach((trait) => {
+        if (!excluded.includes(trait.type)) {
+          for (const attr of trait.attributes) {
+            attr.rarityPercent = attr.count / qty * 100
+            attr.rarityFractional = attr.rarityPercent * 0.01
+            attr.rarityScore = 1 / attr.rarityFractional
+            scores.push(attr)
+          }
+        }
 
-      scores = scores.sort((a, b) => { return b.rarityScore - a.rarityScore })
+        scores = scores.sort((a, b) => { return b.rarityScore - a.rarityScore })
 
-      // Get Rarity Rank for each trait
-      for (const attr of trait.attributes) {
-        const rank = scores.indexOf(attr) // <- No collision possibility because of id added before
-        if (rank !== -1) attr.rarityRank = rank + 1
-      }
-    })
+        // Get Rarity Rank for each trait
+        for (const attr of trait.attributes) {
+          const rank = scores.indexOf(attr) // <- No collision possibility because of id added before
+          if (rank !== -1) attr.rarityRank = rank + 1
+        }
+      })
 
     await collection.save()
 

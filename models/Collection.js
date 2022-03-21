@@ -97,7 +97,8 @@ const CollectionSchema = mongoose.Schema({
   categories: [{
     id: String,
     name: String
-  }]
+  }],
+  excludeFromRarity: [String]
 }, { timestamps: true })
 
 

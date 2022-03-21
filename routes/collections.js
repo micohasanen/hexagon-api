@@ -149,14 +149,23 @@ router.post('/:address/tokens', async (req, res) => {
     const values = []
     const types = new Set()
     const elemMatches = []
+    let isNumeric = false
     for (const trait of req.body.traits) {
       values.push(trait.value)
       types.add(trait.trait_type)
-      elemMatches.push({ $elemMatch: { value: trait.value, trait_type: trait.trait_type } })
+      if (!trait.rangeFrom || !trait.rangeTo) {
+        elemMatches.push({ $elemMatch: { value: trait.value, trait_type: trait.trait_type } })
+      } else {
+        isNumeric = true
+        const match = { value: {}, trait_type: trait.trait_type }
+        if (trait.rangeFrom) match.value = { $exists: true, $gte: trait.rangeFrom }
+        if (trait.rangeTo) match.value = { ...match.value, $exists: true, $lte: trait.rangeTo }
+        elemMatches.push({ $elemMatch: match })
+      }
     }
 
-    if ([...types].length === 1) findQuery.traits = { $elemMatch: { value: { $in: values }, trait_type: { $in: [...types] } } }
-    else if ([...types].length > 1) findQuery.traits = { $all: elemMatches }
+    if ([...types].length === 1 && !isNumeric) findQuery.traits = { $elemMatch: { value: { $in: values }, trait_type: { $in: [...types] } } }
+    else findQuery.traits = { $all: elemMatches }
   }
 
   if (sort === 'lowestPrice') findQuery.lowestPrice = { $exists: true, $gt: 0 }
@@ -408,7 +417,7 @@ router.post("/:address/save", async (req, res) => {
 })
 
 router.post("/:address/sync-tokens", [AdminOnly], async (req, res) => {
-  const collection = await Collection.findOne({ address: req.params.address })
+  const collection = await Collection.findOne({ address: req.params.address.toLowerCase() })
   collection.getAllTokens()
   return res.sendStatus(200)
 })
