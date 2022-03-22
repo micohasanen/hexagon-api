@@ -311,6 +311,8 @@ exports.logListing = async (data) => {
     token.highestPrice = calc.highestPrice
     token.lowestPrice = calc.lowestPrice
 
+    if (data.active) token.lastListedAt = new Date()
+
     await token.save()
 
     return Promise.resolve(token)
