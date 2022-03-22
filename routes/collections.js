@@ -140,7 +140,8 @@ router.post('/:address/tokens', async (req, res) => {
   let priceTo = isNaN(req.query.priceTo) ? null : req.query.priceTo
   let rarityFrom = isNaN(req.query.rarityFrom) ? null : req.query.rarityFrom
   let rarityTo = isNaN(req.query.rarityTo) ? null : req.query.rarityTo
-  let findQuery = { collectionId: req.params.address }
+  let findQuery = { collectionId: req.params.address.toLowerCase() }
+  const filter = req.query.filter || []
 
   if (isNaN(size) || size > 50) size = 50
   if (isNaN(page)) page = 0
@@ -192,6 +193,23 @@ router.post('/:address/tokens', async (req, res) => {
       findQuery.rarity.$gt = rarityFrom 
     }
     if (rarityTo) findQuery.rarity.$lt = rarityTo 
+  }
+
+  // Filters
+  if (filter.includes('auctions')) {
+    findQuery.auctions = { $exists: true, $type: 'array', $ne: [] }
+  } 
+
+  if (filter.includes('listed')) {
+    findQuery.lowestPrice = { $exists: true, $gt: 0 }
+  }
+
+  if (filter.includes('has-bids')) {
+    findQuery.highestBid = { $exists: true, $gt: 0 }
+  }
+
+  if (filter.includes('unlisted')) {
+    findQuery.lowestPrice = { $eq: 0 }
   }
 
   const count = await Token.countDocuments(findQuery)

@@ -235,6 +235,7 @@ exports.refreshMetadata = async function (id) {
     }
 
     await token.save()
+    token.syncAuctions()
 
     return Promise.resolve(token)
  } catch (error) {
@@ -361,9 +362,13 @@ exports.logAuction = async (auction) => {
       collectionId: auction.collectionAddress
     })
 
+    console.log("TokenController, logAuction token:", token)
+
     if (token) {
       await token.syncAuctions()
     }
+
+    return Promise.resolve(true)
   } catch (error) {
     return Promise.reject(error)
   }

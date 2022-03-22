@@ -75,6 +75,10 @@ const CollectionSchema = mongoose.Schema({
     name: String,
     href: String
   }],
+  rarity: {
+    highest: Number,
+    lowest: Number
+  },
   traits: Array,
   owner: { 
     type: String,

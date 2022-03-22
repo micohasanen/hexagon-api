@@ -88,7 +88,10 @@ exports.generateRarity = async (address) => {
         }
       })
 
-    await collection.save()
+    const rarity = {
+      highest: 0,
+      lowest: 0
+    }
 
     // While we're at it, calculate each NFTs rarity, starting with rarity score
     let tokenScores = []
@@ -99,6 +102,8 @@ exports.generateRarity = async (address) => {
 
         const type = traits.find((t) => t.type === attr.trait_type)
         const attribute = type.attributes.find((a) => a.value === attr.value)
+        if (!attribute) continue
+
         attr.rarityPercent = attribute.rarityPercent
         attr.rarityScore = attribute.rarityScore
         attr.rarityRank = attribute.rarityRank
@@ -106,6 +111,10 @@ exports.generateRarity = async (address) => {
       }
 
       token.rarity = totalRarity
+
+      if (rarity.highest < totalRarity) rarity.highest = totalRarity
+      if (!rarity.lowest || rarity.lowest > totalRarity) rarity.lowest = totalRarity
+
       token.markModified('traits')
       tokenScores.push({ _id: token._id, rarity: token.rarity })
     })
@@ -120,8 +129,15 @@ exports.generateRarity = async (address) => {
       token.save()
     })
 
+    console.log(rarity)
+
+    collection.rarity = rarity
+    collection.markModified('rarity')
+    await collection.save()
+
     return Promise.resolve(collection)
   } catch (error) {
+    console.log(error)
     return Promise.reject(error)
   }
 }

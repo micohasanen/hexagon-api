@@ -2,7 +2,6 @@ const Auction = require("../models/Auction")
 const { expireAuction } = require("../queue/Queue")
 
 // Controllers
-const TokenController = require("../controllers/TokenController")
 const NotificationController = require("../controllers/NotificationController")
 
 exports.startAuction = async (data) => {
@@ -21,7 +20,6 @@ exports.startAuction = async (data) => {
 
     await auction.save()
 
-    TokenController.logAuction(auction)
     expireAuction(auction._id, auction.expiry)
 
     return Promise.resolve(true)
