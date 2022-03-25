@@ -1,7 +1,5 @@
 const mongoose = require("mongoose")
 
-const TokenController = require("../controllers/TokenController")
-
 const AuctionSchema = mongoose.Schema({
   collectionAddress: {
     alias: 'collectionId',
@@ -66,9 +64,5 @@ const AuctionSchema = mongoose.Schema({
     trim: true
   }
 }, { timestamps: true })
-
-AuctionSchema.post('save', function () {
-  TokenController.logAuction(this)
-})
 
 module.exports = mongoose.model('Auction', AuctionSchema)

@@ -3,6 +3,14 @@ const { expireAuction } = require("../queue/Queue")
 
 // Controllers
 const NotificationController = require("../controllers/NotificationController")
+const TokenController = require("../controllers/TokenController")
+
+function syncAuctions (auction) {
+  TokenController.syncAuctions({
+    collectionId: auction.collectionAddress,
+    tokenId: auction.tokenId
+  })
+}
 
 exports.startAuction = async (data) => {
   try {
@@ -21,6 +29,7 @@ exports.startAuction = async (data) => {
     await auction.save()
 
     expireAuction(auction._id, auction.expiry)
+    syncAuctions(auction)
 
     return Promise.resolve(true)
   } catch(error) {
@@ -57,6 +66,8 @@ exports.placeBid = async (data) => {
       info: auction
     })
 
+    syncAuctions(auction)
+
     return Promise.resolve(true)
   } catch(error) {
     return Promise.reject(error)
@@ -79,6 +90,8 @@ exports.endAuction = async (data) => {
 
     await auction.save()
 
+    syncAuctions(auction)
+
     return Promise.resolve(true)
   } catch (error) {
     return Promise.reject(error)
@@ -94,6 +107,8 @@ exports.expire = async (id) => {
     if (auction.expiry <= now) {
       auction.ended = true
       await auction.save()
+
+      syncAuctions(auction)
 
       // Send notification to owner?
     }

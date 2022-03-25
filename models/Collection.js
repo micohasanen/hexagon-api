@@ -64,6 +64,9 @@ const CollectionSchema = mongoose.Schema({
     },
     banner: {
       type: String
+    },
+    featured: {
+      type: String
     }
   },
   symbol: String,

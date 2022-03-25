@@ -9,6 +9,7 @@ const ABI_ERC1155 = require("../abis/ERC1155.json")
 
 // Models
 const Token = require("../models/Token")
+const Auction = require("../models/Auction")
 const Balance = require("../models/Balance")
 
 // Web3
@@ -235,7 +236,6 @@ exports.refreshMetadata = async function (id) {
     }
 
     await token.save()
-    token.syncAuctions()
 
     return Promise.resolve(token)
  } catch (error) {
@@ -357,17 +357,25 @@ exports.logBid = async (data) => {
   }
 }
 
-exports.logAuction = async (auction) => {
+exports.syncAuctions = async (data = { collectionId: '', tokenId: null }) => {
   try {
     const token = await Token.findOne({
-      tokenId: auction.tokenId,
-      collectionId: auction.collectionAddress
+      tokenId: data.tokenId,
+      collectionId: data.collectionId
     })
 
-    console.log("TokenController, logAuction token:", token)
+    if (!token) throw new Error('No token found')
 
-    if (token) {
-      await token.syncAuctions()
+    const auctions = await Auction.find({ 
+      collectionAddress: data.collectionId,
+      tokenId: data.tokenId,
+      active: true 
+    }).distinct('_id').exec()
+
+    if (auctions.length) {
+      token.auctions = auctions
+      token.markModified('auctions')
+      await token.save()
     }
 
     return Promise.resolve(true)

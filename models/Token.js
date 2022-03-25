@@ -1,5 +1,4 @@
 const mongoose = require("mongoose")
-const Auction = require("./Auction")
 
 const TokenSchema = mongoose.Schema({
   tokenId: {
@@ -85,20 +84,5 @@ TokenSchema.virtual('tokenCollection', {
   foreignField: 'address',
   justOne: true
 })
-
-TokenSchema.methods.syncAuctions = async function () {
-  const auctions = await Auction.find({ 
-    active: true,
-    collectionAddress: this.collectionId,
-    tokenId: this.tokenId
-  }).distinct('_id')
-
-  if (auctions?.length) { 
-    this.auctions = auctions 
-    await this.save()
-  }
-
-  return true
-}
 
 module.exports = mongoose.model('Token', TokenSchema)
