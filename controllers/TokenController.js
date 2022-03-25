@@ -32,10 +32,11 @@ async function updateBalances (data) {
     const { Provider } = GetProvider(data.chain)
     const abi = data.contractType === 'ERC1155' ? ABI_ERC1155 : ABI_ERC721
     const contract = new Provider.eth.Contract(abi, data.tokenAddress)
+    let owner = data.toAddress
 
     // Get new balances of transfer parties
     if (data.contractType === 'ERC721') {
-      const owner = await contract.methods.ownerOf(data.tokenId).call()
+      owner = await contract.methods.ownerOf(data.tokenId).call()
 
       await Balance.updateOne({ 
         tokenId: data.tokenId, 
@@ -68,7 +69,7 @@ async function updateBalances (data) {
       }, { amount: balanceTo }, createOptions)
   }
 
-  return Promise.resolve(true)
+  return Promise.resolve(owner)
   } catch (error) {
     return Promise.reject(error)
   }
@@ -236,6 +237,7 @@ exports.refreshMetadata = async function (id) {
     }
 
     await token.save()
+    this.syncAuctions(token)
 
     return Promise.resolve(token)
  } catch (error) {
@@ -260,12 +262,16 @@ exports.logTransfer = async (data) => {
     if (!token.transfers) token.transfers = []
     const i = token.transfers.findIndex(t => t.toString() === data._id.toString())
     if (i === -1) token.transfers.push(data._id)
-    await token.save()
+
+    let newOwner = data.toAddress
 
     // Update owner balances
     if (data.chain) {
-      await updateBalances(data)
+      newOwner = await updateBalances(data)
     }
+
+    if (token.contractType === 'ERC721') token.owner = newOwner
+    await token.save()
 
     return Promise.resolve(token)
   } catch (error) {
@@ -313,6 +319,7 @@ exports.logListing = async (data) => {
 
     if (data.active) token.lastListedAt = new Date()
 
+    token.markModified('listings')
     await token.save()
 
     return Promise.resolve(token)
