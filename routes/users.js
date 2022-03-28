@@ -10,6 +10,18 @@ const User = require("../models/User")
 // Middleware
 const { extractUser } = require("../middleware/VerifySignature")
 
+router.get('/:address', async (req, res) => {
+  try {
+    const user = await User.findOne({ address: req.params.address }).select('-role').exec()
+    if (!user) return res.status(404).json({ message: 'No user found.' })
+
+    return res.status(200).json({ user })
+  } catch (error) {
+    console.error(error)
+    return res.status(500).json({ message: 'Something went wrong.', error })
+  }
+})
+
 router.get("/:address/tokens", async (req, res) => {
   try {
     const chain = req.query.chain || 'mumbai'

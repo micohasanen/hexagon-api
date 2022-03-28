@@ -50,7 +50,7 @@ exports.placeBid = async (data) => {
     const bid = {
       value: data.bid,
       bidder: data.bidder,
-      timestamp: new Date().getTime()
+      timestamp: new Date().getTime() / 1000
     }
 
     auction.highestBidder = bid.bidder

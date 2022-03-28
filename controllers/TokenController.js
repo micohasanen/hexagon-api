@@ -22,7 +22,7 @@ const CHECKER_ERC721 = "0x70a08231"
 const CHECKER_ERC1155 = "0x4e1273f4"
 
 function resolveIpfs (path) {
-  if (path.startsWith('ipfs://'))
+  if (path?.startsWith('ipfs://'))
     return path.replace('ipfs://', process.env.IPFS_GATEWAY)
   return path
 }
@@ -191,16 +191,19 @@ exports.refreshMetadata = async function (id) {
       if (fetched.data) {
         // Generate Thumbnail Images
         if (token.metadata?.image !== fetched.data.image || !token.imageHosted) {
-          if (fetched.data.image.startsWith('ipfs://')) token.imageHosted = fetched.data.image
+          if (fetched.data.image?.startsWith('ipfs://')) token.imageHosted = fetched.data.image
           else {
-            const imageReq = await axios.get(resolveIpfs(fetched.data.image), { responseType: 'arraybuffer' })
-            const image = imageReq.data
-            const buffer = Buffer.from(image)
-            const upload = new Moralis.File(`hexagon_${nanoid()}.jpg`, Array.from(buffer))
-            await upload.saveIPFS({ useMasterKey: true })
-            const hash = upload.hash()
-  
-            token.imageHosted = `ipfs://${hash}`
+            const requestUrl = resolveIpfs(fetched.data.image)
+            if (requestUrl) {
+              const imageReq = await axios.get(resolveIpfs(fetched.data.image), { responseType: 'arraybuffer' })
+              const image = imageReq.data
+              const buffer = Buffer.from(image)
+              const upload = new Moralis.File(`hexagon_${nanoid()}.jpg`, Array.from(buffer))
+              await upload.saveIPFS({ useMasterKey: true })
+              const hash = upload.hash()
+    
+              token.imageHosted = `ipfs://${hash}`
+            }
           }
         }
 

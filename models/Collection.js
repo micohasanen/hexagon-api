@@ -156,10 +156,11 @@ CollectionSchema.post('save', function () {
 
 CollectionSchema.methods.getAllTokens = async function () {
   try {
-    let total = 1000
+    let total = 1
     const batchSize = 500
     let processed = 0
     let contractType = ''
+
     for (let i = 0; i <= total; i += batchSize) {
       const tokenData = await Moralis.Web3API.token.getAllTokenIds({
         address: this.address,
@@ -195,6 +196,7 @@ CollectionSchema.methods.getAllTokens = async function () {
       }
     }
   } catch (error) {
+    console.error(error)
     throw new Error(error)
   }
 }
