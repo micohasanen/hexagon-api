@@ -148,12 +148,12 @@ router.post('/validate-balance', async (req, res) => {
     
     for (const b of bids) {
       const bid = b.toObject()
-      if (!collections[bid.collectionId]) {
-        const collection = await Collection.findOne({ address: bid.collectionId })
-        collections[bid.collectionId] = collection
+      if (!collections[bid.contractAddress]) {
+        const collection = await Collection.findOne({ address: bid.contractAddress })
+        collections[bid.contractAddress] = collection
       }
 
-      const collection = collections[bid.collectionId]
+      const collection = collections[bid.contractAddress]
       const balance = await checkBalance(
         collection.chain, 
         collection.currency.contract || process.env.DEFAULT_CURRENCY,
