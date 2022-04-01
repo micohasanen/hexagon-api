@@ -5,7 +5,8 @@ const { addMetadata } = require("../queue/Queue")
 
 const TransferSchema = mongoose.Schema({
   blockTimestamp: {
-    type: Date
+    type: Date,
+    index: true
   },
   blockNumber: Number,
   contractType: String,
@@ -26,13 +27,15 @@ const TransferSchema = mongoose.Schema({
     type: String, 
     lowercase: true,
     trim: true,
-    required: true
+    required: true,
+    index: true
   },
   toAddress: {
     type: String, 
     lowercase: true,
     trim: true,
-    required: true
+    required: true,
+    index: true
   },
   tokenId: {
     type: Number,

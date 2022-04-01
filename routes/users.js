@@ -1,4 +1,5 @@
 const router = require("express").Router()
+const parseDuration = require("parse-duration")
 
 // Models
 const Balance = require("../models/Balance")
@@ -6,6 +7,10 @@ const Token = require("../models/Token")
 const Auction = require("../models/Auction")
 const Notification = require("../models/Notification")
 const User = require("../models/User")
+const Transfer = require("../models/Transfer")
+const Sale = require("../models/Sale")
+const Listing = require("../models/Listing")
+const Bid = require("../models/Bid")
 
 // Middleware
 const { extractUser } = require("../middleware/VerifySignature")
@@ -113,6 +118,98 @@ router.get('/:address/notifications', async (req, res) => {
       previousPage: page === 0 ? null : page - 1,
       results: notifications 
     })
+  } catch (error) {
+    return res.status(500).json({ message: 'Something went wrong.', error })
+  } 
+})
+
+router.get('/:address/activity', async (req, res) => {
+  try {
+    let period = parseDuration(req.query.period)
+    if (!period) period = 86400000 // 1d
+
+    let endDate = new Date().getTime()
+    if (req.query.timestamp) endDate = new Date(req.query.timestamp).getTime()
+
+    const startDate = endDate - period
+
+    if (!req.query.include) return res.status(400).json({ message: 'Please specify which events to include.' })
+
+    let results = []
+    const address = req.params.address
+
+    if (req.query.include.includes('transfers')) {
+      const transfers = await Transfer.find({ 
+        blockTimestamp: { $gte: startDate, $lte: endDate },
+        $or: [ { fromAddress: address }, { toAddress: address } ]
+      }).lean().exec()
+
+      for (const transfer of transfers) {
+        transfer.activityType = 'transfer'
+        transfer.timestamp = transfer.blockTimestamp
+      }
+      
+      results.push(...transfers)
+    }
+
+    if (req.query.include.includes('sales')) {
+      const sales = await Sale.find({
+        timestamp: { $gte: startDate, $lte: endDate },
+        $or: [ { seller: address }, { buyer: address } ]
+      }).lean().exec()
+
+      for (const sale of sales) {
+        sale.activityType = 'sale'
+      }
+
+      results.push(...sales)
+    }
+
+    if (req.query.include.includes('listings')) {
+      const listings = await Listing.find({
+        userAddress: address,
+        createdAt: { $gte: startDate, $lte: endDate }
+      }).lean().exec()
+
+      for (const listing of listings) {
+        listing.activityType = 'listing'
+        listing.timestamp = listing.createdAt
+      }
+
+      results.push(...listings)
+    }
+
+    if (req.query.include.includes('bids')) {
+      const bids = await Bid.find({
+        userAddress: address,
+        createdAt: { $gte: startDate, $lte: endDate }
+      }).lean().exec()
+
+      for (const bid of bids) {
+        bid.activityType = 'bid'
+        bid.timestamp = bid.createdAt
+      }
+
+      results.push(...bids)
+    }
+
+    if (req.query.include.includes('auctions')) {
+      const auctions = await Auction.find({
+        owner: address,
+        createdAt: { $gte: startDate, $lte: endDate }
+      }).lean().exec()
+
+      for (const auction of auctions) {
+        auction.activityType = 'auction'
+        auction.timestamp = auction.createdAt
+      }
+
+      results.push(...auctions)
+    }
+
+    results = results.sort((a, b) => { return b.timestamp - a.timestamp })
+
+    return res.status(200).json({ total: results.length, results })
   } catch (error) {
     return res.status(500).json({ message: 'Something went wrong.', error })
   } 
