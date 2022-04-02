@@ -319,7 +319,7 @@ router.get('/:address/token/:tokenId/activity', async (req, res) => {
       const transfers = await Transfer.find({
         tokenAddress: req.params.address.toLowerCase(),
         tokenId: req.params.tokenId,
-        createdAt: { $gte: startDate, $lte: endDate } // This should be sorted by block timestamp, will do later
+        blockTimestamp: { $gte: startDate, $lte: endDate } // This should be sorted by block timestamp, will do later
       }).lean().exec()
 
       for (const transfer of transfers) {
