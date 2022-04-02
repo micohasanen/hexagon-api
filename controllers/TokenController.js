@@ -1,5 +1,5 @@
 const axios = require("axios")
-const { addMetadata, generateRarity } = require("../queue/Queue")
+const { addMetadata, generateRarity, updateCollectionPrices } = require("../queue/Queue")
 const { nanoid } = require("nanoid")
 const { Moralis } = require("../utils/Moralis")
 
@@ -16,10 +16,6 @@ const Balance = require("../models/Balance")
 const GetProvider = require("../utils/ChainProvider")
 
 const contractUtils = require("../utils/contractType")
-
-// Holding the function signatures for unique functions for each contract
-const CHECKER_ERC721 = "0x70a08231"
-const CHECKER_ERC1155 = "0x4e1273f4"
 
 function resolveIpfs (path) {
   if (path?.startsWith('ipfs://'))
@@ -324,6 +320,8 @@ exports.logListing = async (data) => {
 
     token.markModified('listings')
     await token.save()
+
+    updateCollectionPrices(data.collectionId)
 
     return Promise.resolve(token)
   } catch (error) {

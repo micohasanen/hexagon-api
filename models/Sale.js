@@ -4,6 +4,7 @@ const { addMetadata } = require("../queue/Queue")
 // Models
 const Token = require("./Token")
 const Collection = require("./Collection")
+const User = require("./User")
 
 const SaleSchema = mongoose.Schema({
   collectionId: {
@@ -46,7 +47,10 @@ const SaleSchema = mongoose.Schema({
   },
   marketplaceFee: Number,
   creatorFee: Number,
-  ownerRevenue: Number
+  ownerRevenue: Number,
+  blockNumber: Number,
+  blockTimestamp: Date,
+  transactionHash: String
 }, { timestamps: true })
 
 SaleSchema.post('save', async function () {
@@ -57,10 +61,17 @@ SaleSchema.post('save', async function () {
 
   addMetadata(token._id)
 
-  const collection = await Collection.updateOne({ address: this.collectionId }, {
+  await Collection.updateOne({ address: this.collectionId }, {
     $inc: { "volume.total": this.value, "sales.total": 1 }
   })
 
+  await User.updateOne({ address: this.seller }, {
+    $inc: { "volume.total": this.value }
+  }, { upsert: true })
+
+  await User.updateOne({ address: this.buyer }, {
+    $inc: { "volume.total": this.value }
+  }, { upsert: true })
 })
 
 module.exports = mongoose.model('Sale', SaleSchema)

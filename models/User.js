@@ -19,6 +19,25 @@ const UserSchema = mongoose.Schema({
   images: {
     banner: String,
     profile: String
+  },
+  volume: {
+    total: {
+      type: Number,
+      default: 0
+    },
+    day: {
+      type: Number,
+      default: 0
+    },
+    week: {
+      type: Number,
+      default: 0
+    },
+    month: {
+      type: Number,
+      default: 0
+    },
+    default: {}
   }
 }, { timestamps: true })
 

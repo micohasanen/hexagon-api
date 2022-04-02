@@ -1,5 +1,5 @@
 const config = require('../config')
-const { Worker, jobIdForGroup } = require("bullmq")
+const { Worker } = require("bullmq")
 
 // Controllers
 const TransferController = require("../controllers/TransferController")
@@ -65,5 +65,10 @@ module.exports = () => {
     } else if (job.data.eventType === 'expiry') {
       AuctionController.expire(job.data.id)
     }
+  }, { connection: config.redisConnection })
+
+  // Prices
+  const priceWorker = new Worker('prices', async (job) => {
+    await CollectionController.updatePrices(job.data.address)
   }, { connection: config.redisConnection })
 }

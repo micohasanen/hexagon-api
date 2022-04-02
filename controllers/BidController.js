@@ -67,6 +67,8 @@ exports.accept = async (data) => {
     sale.saleType = 'bid'
     sale.buyer = data.buyer
     sale.value = Number(bid.pricePerItem) * Number(bid.quantity)
+    if (data.blockNumber) sale.blockNumber = data.blockNumber
+    if (data.transactionHash) sale.transactionHash = data.transactionHash
     await sale.save()
 
     return Promise.resolve({ bid, sale })

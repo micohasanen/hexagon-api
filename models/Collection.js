@@ -5,10 +5,6 @@ const { generateRarity } = require("../queue/Queue")
 const ABI_ERC721 = require("../abis/ERC721.json")
 const ABI_ERC1155 = require("../abis/ERC721.json")
 
-// Holding the function signatures for unique functions for each contract
-const CHECKER_ERC721 = "0x70a08231"
-const CHECKER_ERC1155 = "0x4e1273f4"
-
 // Controllers
 const TokenController = require("../controllers/TokenController")
 
@@ -105,7 +101,19 @@ const CollectionSchema = mongoose.Schema({
     id: String,
     name: String
   }],
-  excludeFromRarity: [String]
+  excludeFromRarity: [String],
+  floorPrice: {
+    type: Number,
+    default: 0
+  },
+  averagePrice: {
+    type: Number,
+    default: 0
+  },
+  highestPrice: {
+    type: Number,
+    default: 0
+  }
 }, { timestamps: true })
 
 
@@ -161,11 +169,11 @@ CollectionSchema.methods.getAllTokens = async function () {
     let processed = 0
     let contractType = ''
 
-    for (let i = 0; i <= total; i += batchSize) {
+    for (let i = 0; i < Math.ceil(total / batchSize); i++) {
       const tokenData = await Moralis.Web3API.token.getAllTokenIds({
         address: this.address,
         chain: this.chain,
-        offset: i
+        offset: i * batchSize
       })
 
       total = parseInt(tokenData.total)

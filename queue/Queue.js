@@ -18,6 +18,8 @@ const bidsQueue = new Queue('bids', { connection: config.redisConnection })
 new QueueScheduler('auctions', { connection: config.redisConnection })
 const auctionsQueue = new Queue('auctions', { connection: config.redisConnection })
 
+const priceQueue = new Queue('prices', { connection: config.redisConnection })
+
 function calculateDelay (expiry, surplus = 30000) { // 30s surplus just to be safe
   const now = new Date().getTime() / 1000
   const delay = expiry - now
@@ -53,4 +55,8 @@ exports.expireBid = async (id, expiry) => {
 exports.expireAuction = async (id, expiry) => {
   const delay = calculateDelay(expiry)
   await auctionsQueue.add(nanoid(), { eventType: 'expiry', id }, { delay })
+}
+
+exports.updateCollectionPrices = async (address) => {
+  await priceQueue.add(nanoid(), { address })
 }

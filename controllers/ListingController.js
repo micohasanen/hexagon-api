@@ -73,6 +73,8 @@ exports.accept = async (data) => {
     sale.saleType = 'listing'
     sale.buyer = data.buyer
     sale.value = Number(listing.pricePerItem) * Number(listing.quantity)
+    if (data.blockNumber) sale.blockNumber = data.blockNumber
+    if (data.transactionHash) sale.transactionHash = data.transactionHash
     await sale.save()
 
     NotificationController.addNotification({

@@ -1,6 +1,7 @@
 const { nanoid } = require("nanoid")
 const Collection = require("../models/Collection")
-const TokenController = require("../controllers/TokenController")
+const Token = require("../models/Token")
+const Listing = require("../models/Listing")
 
 exports.add = async (data) => {
   try {
@@ -26,7 +27,7 @@ exports.generateRarity = async (address) => {
     console.log('Rarity generation started for' , address)
     const excluded = collection.excludeFromRarity || []
 
-    const tokens = await TokenController.getAllForCollection(address)
+    const tokens = await Token.find({ collectionId: address })
     if (tokens.length) collection.traits = []
     const traits = collection.traits
 
@@ -141,3 +142,27 @@ exports.generateRarity = async (address) => {
     return Promise.reject(error)
   }
 }
+
+exports.updatePrices = async (address) => {
+  try {
+    let prices = await Listing.aggregate([
+      { $match: { collectionId: address, active: true }},
+      { $group: { 
+        _id: "$collectionId", 
+        floorPrice: { $min: "$pricePerItem" },
+        averagePrice: { $avg: "$pricePerItem" },
+        highestPrice: { $max: "$pricePerItem" }
+      }}
+    ])
+
+    if (!prices.length) return Promise.resolve([])
+    
+    delete prices[0]._id
+    await Collection.findOneAndUpdate({ address }, { ...prices[0] })
+
+    return Promise.resolve(prices)
+  } catch (error) {
+    console.log(error)
+    return Promise.reject(error)
+  }
+} 
