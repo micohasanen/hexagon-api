@@ -85,4 +85,6 @@ TokenSchema.virtual('tokenCollection', {
   justOne: true
 })
 
+TokenSchema.index({ name: 'text' })
+
 module.exports = mongoose.model('Token', TokenSchema)

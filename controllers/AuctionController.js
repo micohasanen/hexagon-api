@@ -62,6 +62,7 @@ exports.placeBid = async (data) => {
     NotificationController.addNotification({
       notificationType: 'auctionBid',
       receiver: auction.owner,
+      sender: bid.bidder,
       value: bid.value,
       info: auction
     })
