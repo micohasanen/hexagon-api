@@ -66,7 +66,7 @@ SaleSchema.post('save', async function () {
   })
 
   await User.updateOne({ address: this.seller }, {
-    $inc: { "volume.total": this.value }
+    $inc: { "volume.total": this.value, "sales.total": 1 }
   }, { upsert: true })
 
   await User.updateOne({ address: this.buyer }, {
