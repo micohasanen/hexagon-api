@@ -224,7 +224,7 @@ router.get('/:address/offers', async (req, res) => {
     if (req.query.timestamp) endDate = new Date(req.query.timestamp).getTime()
 
     const startDate = endDate - period
-    const includeTokenData = req.query.include.includes('tokens')
+    const includeTokenData = req.query.include?.includes('tokens')
     let results = []
 
     const offersMade = await Bid.find({
