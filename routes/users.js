@@ -4,6 +4,7 @@ const parseDuration = require("parse-duration")
 // Models
 const Balance = require("../models/Balance")
 const Token = require("../models/Token")
+const Collection = require("../models/Collection")
 const Auction = require("../models/Auction")
 const Notification = require("../models/Notification")
 const User = require("../models/User")
@@ -20,7 +21,22 @@ router.get('/:address', async (req, res) => {
     const user = await User.findOne({ address: req.params.address }).select('-role').exec()
     if (!user) return res.status(404).json({ message: 'No user found.' })
 
-    return res.status(200).json({ user })
+    const balances = await Balance.aggregate([
+      { $match: { address: req.params.address } },
+      { $group: { _id: '$collectionId', amount: { $sum: "$amount" } } }
+    ])
+
+    let estimatedValue = 0
+    const values = []
+
+    for (const balance of balances) {
+      const collection = await Collection.findOne({ address: balance._id }).distinct('floorPrice')
+      if (collection.length) { 
+        estimatedValue += collection[0] * balance.amount 
+      }
+    }
+
+    return res.status(200).json({ user: { ...user.toObject(), estimatedValue } })
   } catch (error) {
     console.error(error)
     return res.status(500).json({ message: 'Something went wrong.', error })
