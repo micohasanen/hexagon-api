@@ -81,6 +81,7 @@ exports.accept = async (data) => {
       value: sale.value,
       notificationType: 'sale',
       receiver: userAddress,
+      sender: data.buyer,
       info: {
         ...sale.toObject()
       }

@@ -7,6 +7,12 @@ const NotificationSchema = mongoose.Schema({
     trim: true,
     index: true
   },
+  sender: {
+    type: String,
+    lowercase: true,
+    trim: true,
+    index: true
+  },
   title: String,
   message: String,
   notificationType: String,

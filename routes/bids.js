@@ -43,6 +43,7 @@ async function sendNotification (bid) {
 
     NotificationController.addNotification({
       receiver: owner[0].address,
+      sender: bid.userAddress,
       notificationType: 'bid',
       value: bid.pricePerItem,
       info: { ...bid.toObject() }

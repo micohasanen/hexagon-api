@@ -241,19 +241,23 @@ router.get('/:address/offers', async (req, res) => {
 
     const startDate = endDate - period
     const includeTokenData = req.query.include?.includes('tokens')
-    let results = []
+    let offers = []
 
-    const offersMade = await Bid.find({
-      userAddress: req.params.address,
+    const offersMade = await Notification.find({
+      sender: req.params.address,
+      notificationType: 'bid',
       createdAt: { $gte: startDate, $lte: endDate }
     }).lean().exec()
 
-    for (const offer of offersMade) {
-      offer.activityType = 'offerMade'
-      offer.timestamp = offer.createdAt
+    for (const made of offersMade) {
+      offers.push({
+        activityType: 'offerMade',
+        timestamp: made.createdAt,
+        _id: made.info._id,
+        from: made.sender,
+        to: made.receiver
+      })
     }
-
-    results.push(...offersMade)
 
     // Hacky way to get offers received without going checking user balances
     const offersReceived = await Notification.find({
@@ -262,26 +266,36 @@ router.get('/:address/offers', async (req, res) => {
       createdAt: { $gte: startDate, $lte: endDate }
     })
 
-    for (const offer of offersReceived) {
-      offer.info.activityType = 'offerReceived'
-      offer.info.timestamp = offer.info.createdAt
-      results.push(offer.info)
+    for (const received of offersReceived) {
+      offers.push({
+        activityType: 'offerReceived',
+        timestamp: received.info.createdAt,
+        _id: received.info._id,
+        from: received.sender,
+        to: received.receiver
+      })
+    }
+
+    // Fetch most recent offer data
+    for (let i = 0; i < offers.length; i++) {
+      const offer = await Bid.findOne({ _id: offers[i]._id })
+      offers[i] = { ...offers[i], ...offer.toObject() }
     }
 
     if (includeTokenData) {
-      for (const result of results) {
+      for (const offer of offers) {
         const token = await Token.findOne({ 
-          collectionId: result.contractAddress,
-          tokenId: result.tokenId
+          collectionId: offer.contractAddress,
+          tokenId: offer.tokenId
         }).select('name collectionId image imageHosted _id tokenId description').exec()
 
-        result.token = token
+        offer.token = token
       }
     }
 
-    results = results.sort((a, b) => { return b.timestamp - a.timestamp })
+    offers = offers.sort((a, b) => { return b.timestamp - a.timestamp })
 
-    return res.status(200).json({ total: results.length, results })
+    return res.status(200).json({ total: offers.length, results: offers })
   } catch (error) {
     return res.status(500).json({ message: 'Something went wrong.', error })
   } 
