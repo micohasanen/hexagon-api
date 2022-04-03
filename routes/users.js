@@ -215,6 +215,62 @@ router.get('/:address/activity', async (req, res) => {
   } 
 })
 
+router.get('/:address/offers', async (req, res) => {
+  try {
+    let period = parseDuration(req.query.period)
+    if (!period) period = 86400000 // 1d
+
+    let endDate = new Date().getTime()
+    if (req.query.timestamp) endDate = new Date(req.query.timestamp).getTime()
+
+    const startDate = endDate - period
+    const includeTokenData = req.query.include.includes('tokens')
+    let results = []
+
+    const offersMade = await Bid.find({
+      userAddress: req.params.address,
+      createdAt: { $gte: startDate, $lte: endDate }
+    }).lean().exec()
+
+    for (const offer of offersMade) {
+      offer.activityType = 'offerMade'
+      offer.timestamp = offer.createdAt
+    }
+
+    results.push(...offersMade)
+
+    // Hacky way to get offers received without going checking user balances
+    const offersReceived = await Notification.find({
+      receiver: req.params.address,
+      notificationType: 'bid',
+      createdAt: { $gte: startDate, $lte: endDate }
+    })
+
+    for (const offer of offersReceived) {
+      offer.info.activityType = 'offerReceived'
+      offer.info.timestamp = offer.info.createdAt
+      results.push(offer.info)
+    }
+
+    if (includeTokenData) {
+      for (const result of results) {
+        const token = await Token.findOne({ 
+          collectionId: result.contractAddress,
+          tokenId: result.tokenId
+        }).select('name collectionId image imageHosted _id tokenId description').exec()
+
+        result.token = token
+      }
+    }
+
+    results = results.sort((a, b) => { return b.timestamp - a.timestamp })
+
+    return res.status(200).json({ total: results.length, results })
+  } catch (error) {
+    return res.status(500).json({ message: 'Something went wrong.', error })
+  } 
+})
+
 router.post('/me', [extractUser], async (req, res) => {
   try {
     if (!req.user?.address || !req.body) return res.status(400).json({ message: 'Missing required parameters.' })
