@@ -94,17 +94,22 @@ exports.endAuction = async (data) => {
 
     syncAuctions(auction)
 
-    const sale = new Sale({
-      ...data,
-      timestamp: new Date(),
-      seller: data.owner,
-      buyer: data.bidder,
-      saleType: 'auction',
-      collectionId: data.collectionAddress,
-      value: data.bid
-    })
-
-    await sale.save()
+    if (data.bid && Number(data.bid) > 0) {
+      const sale = new Sale({
+        ...data,
+        timestamp: new Date(),
+        seller: data.owner,
+        buyer: data.bidder,
+        saleType: 'auction',
+        collectionId: data.collectionAddress,
+        value: data.bid
+      })
+  
+      console.log('Auction Sale')
+      console.log(sale)
+  
+      await sale.save()
+    }
 
     return Promise.resolve(true)
   } catch (error) {
