@@ -1,5 +1,25 @@
 const mongoose = require("mongoose")
 
+const TotalingSchema = {
+  total: {
+    type: Number,
+    default: 0
+  },
+  day: {
+    type: Number,
+    default: 0
+  },
+  week: {
+    type: Number,
+    default: 0
+  },
+  month: {
+    type: Number,
+    default: 0
+  },
+  default: {}
+}
+
 const UserSchema = mongoose.Schema({
   address: {
     type: String,
@@ -20,25 +40,10 @@ const UserSchema = mongoose.Schema({
     banner: String,
     profile: String
   },
-  volume: {
-    total: {
-      type: Number,
-      default: 0
-    },
-    day: {
-      type: Number,
-      default: 0
-    },
-    week: {
-      type: Number,
-      default: 0
-    },
-    month: {
-      type: Number,
-      default: 0
-    },
-    default: {}
-  }
+  volume: TotalingSchema,
+  sales: TotalingSchema
 }, { timestamps: true })
+
+UserSchema.index({ username: 'text' })
 
 module.exports = mongoose.model('User', UserSchema)
