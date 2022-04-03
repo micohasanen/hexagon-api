@@ -1,5 +1,6 @@
 const Auction = require("../models/Auction")
 const { expireAuction } = require("../queue/Queue")
+const Sale = require("../models/Sale")
 
 // Controllers
 const NotificationController = require("../controllers/NotificationController")
@@ -92,6 +93,18 @@ exports.endAuction = async (data) => {
     await auction.save()
 
     syncAuctions(auction)
+
+    const sale = new Sale({
+      ...data,
+      timestamp: new Date(),
+      seller: data.owner,
+      buyer: data.bidder,
+      saleType: 'auction',
+      collectionId: data.collectionAddress,
+      value: data.bid
+    })
+
+    await sale.save()
 
     return Promise.resolve(true)
   } catch (error) {
