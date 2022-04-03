@@ -229,6 +229,28 @@ router.post('/:address/tokens', async (req, res) => {
     results: tokens })
 })
 
+router.get('/:address/tokens/snippet', async (req, res) => {
+  try {
+    const size = Number(req.query.size) || 5
+    const fields = req.query.fields?.split(',') || [ 'name', 'tokenId', 'collectionId', 'imageHosted' ]
+
+    const include = {}
+    fields.forEach((field) => {
+      include[field] = true
+    })
+
+    const tokens = await Token.aggregate([
+      { $match: { collectionId: req.params.address } },
+      { $project: include },
+      { $sample: { size } }
+    ])
+
+    return res.status(200).json({ results: tokens })
+  } catch (error) {
+    return res.status(500).json({ message: 'Something went wrong.', error })
+  }
+})
+
 router.get('/:address/tokens/all', async (req, res) => {
   try {
     const tokens = await TokenController.getAllForCollection(req.params.address)
