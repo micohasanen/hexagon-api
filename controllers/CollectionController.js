@@ -146,7 +146,7 @@ exports.generateRarity = async (address) => {
 exports.updatePrices = async (address) => {
   try {
     let prices = await Listing.aggregate([
-      { $match: { collectionId: address, active: true }},
+      { $match: { contractAddress: address, active: true }},
       { $group: { 
         _id: "$collectionId", 
         floorPrice: { $min: "$pricePerItem" },

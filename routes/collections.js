@@ -109,7 +109,7 @@ router.get('/:address', async (req, res) => {
     if (!collection) return res.status(404).json({ message: 'No collection found.' })
 
     let prices = await Listing.aggregate([
-      { $match: { collectionId: req.params.address, active: true }},
+      { $match: { contractAddress: req.params.address, active: true }},
       { $group: { 
         _id: "$collectionId", 
         floorPrice: { $min: "$pricePerItem" },
@@ -411,7 +411,7 @@ router.get("/:address/activity", async (req, res) => {
     if (req.query.include.includes('transfers')) {
       const transfers = await Transfer.find({
         tokenAddress: req.params.address,
-        createdAt: { $gte: startDate, $lte: endDate } // This should be sorted by block timestamp, will do later
+        blockTimestamp: { $gte: startDate, $lte: endDate } // This should be sorted by block timestamp, will do later
       }).lean().exec()
 
       for (const transfer of transfers) {
