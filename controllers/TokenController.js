@@ -243,7 +243,7 @@ exports.refreshMetadata = async function (id) {
 
     await session.commitTransaction()
     session.endSession()
-    
+
     this.syncAuctions(token)
 
     return Promise.resolve(token)
@@ -258,10 +258,10 @@ exports.logTransfer = async (data) => {
     const session = await mongoose.startSession()
     session.startTransaction()
 
-    let token = await Token.findOne({ collectionId: data.tokenAddress.toLowerCase(), tokenId: data.tokenId }).session(session)
+    let token = await Token.findOne({ collectionId: data.tokenAddress.toLowerCase(), tokenId: data.tokenId }).session(session).exec()
     if (!token) { 
       console.log('Token Minted, creating new')
-      token = new Token() 
+      token = new Token().session(session)
       token.collectionId = data.tokenAddress
       token.tokenId = data.tokenId
       token.contractType = data.contractType || 'ERC721'
