@@ -171,29 +171,30 @@ router.post('/:address/tokens', async (req, res) => {
   }
 
   if (sort === 'lowestPrice') findQuery.lowestPrice = { $exists: true, $gt: 0 }
+  else if (sort === '-highestPrice') findQuery.lowestPrice = { $exists: true, $gt: 0 }
   else if (sort === 'highestBid') findQuery.highestBid = { $exists: true, $gt: 0 }
   else if (sort === "lastSoldAt") findQuery.lastSoldAt =  { $exists: true }
 
   // Price filtering
   if (priceFrom) {
     if (!findQuery.lowestPrice) findQuery.lowestPrice = {}
-    findQuery.lowestPrice.$gt = web3.utils.toWei(priceFrom)
+    findQuery.lowestPrice.$gte = web3.utils.toWei(priceFrom)
     findQuery.lowestPrice.$exists = true
   }
 
   if (priceTo) {
     if (!findQuery.highestPrice) findQuery.highestPrice = {}
     findQuery.highestPrice.$exists = true
-    findQuery.highestPrice.$lt = web3.utils.toWei(priceTo)
+    findQuery.highestPrice.$lte = web3.utils.toWei(priceTo)
   }
 
   // Rarity filtering
   if (rarityFrom || rarityTo) {
     if (!findQuery.rarity) findQuery.rarity = { $exists: true }
     if (rarityFrom) { 
-      findQuery.rarity.$gt = rarityFrom 
+      findQuery.rarity.$gte = rarityFrom 
     }
-    if (rarityTo) findQuery.rarity.$lt = rarityTo 
+    if (rarityTo) findQuery.rarity.$lte = rarityTo 
   }
 
   // Filters
@@ -207,17 +208,47 @@ router.post('/:address/tokens', async (req, res) => {
     findQuery.lowestPrice = { $eq: 0 }
   }
 
-  const count = await Token.countDocuments(findQuery)
-  const totalPageCount = Math.ceil(count / size) - 1
+  let count = await Token.countDocuments(findQuery)
+  let totalPageCount = Math.ceil(count / size) - 1
+
+  let tokens = []
   
-  const tokens = await Token
-    .find(findQuery)
-    .sort(sort)
-    .skip(page * size)
-    .limit(size)
-    .populate('auctions')
-    .select('-traits -metadata')
-    .exec()
+  if (count) {
+    tokens = await Token
+      .find(findQuery)
+      .sort(sort)
+      .skip(page * size)
+      .limit(size)
+      .populate('auctions')
+      .select('-traits -metadata')
+      .exec()
+  }
+
+  // If sort is the only filter, return more items
+  const keys = Object.keys(findQuery)
+  const sorts = ['lowestPrice', '-highestPrice', 'highestBid', 'lastSoldAt']
+
+  if (
+    keys.length === 2 && 
+    !filter.length && 
+    sorts.includes(sort) &&
+    totalPageCount <= page
+  ) {
+    const q = { collectionId: req.params.address.toLowerCase() }
+    count = await Token.countDocuments(q)
+    const additionalTokens = await Token
+                            .find(q)
+                            .limit(size - tokens.length)
+                            .skip(page * size)
+                            .sort('tokenId')
+                            .populate('auctions')
+                            .select('-traits -metadata')
+                            .exec()
+
+    tokens = [...tokens, ...additionalTokens]
+  }
+
+  totalPageCount = Math.ceil(count / size) - 1
 
   return res.status(200).json({ 
     total: count, 
