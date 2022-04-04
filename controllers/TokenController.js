@@ -1,4 +1,5 @@
 const axios = require("axios")
+const mongoose = require("mongoose")
 const { addMetadata, generateRarity, updateCollectionPrices } = require("../queue/Queue")
 const { nanoid } = require("nanoid")
 const { Moralis } = require("../utils/Moralis")
@@ -154,7 +155,10 @@ exports.refreshMetadata = async function (id) {
  try {
     if (!id) throw new Error('Missing required data.')
 
-    const token = await Token.findOne({ _id: id }).populate('tokenCollection').exec()
+    const session = await mongoose.startSession()
+    session.startTransaction()
+
+    const token = await Token.findOne({ _id: id }).populate('tokenCollection').session(session).exec()
     if (!token || !token.tokenCollection) throw new Error('No token found.')
 
     const { Provider } = GetProvider(token.tokenCollection.chain)
@@ -236,6 +240,10 @@ exports.refreshMetadata = async function (id) {
     }
 
     await token.save()
+
+    await session.commitTransaction()
+    session.endSession()
+    
     this.syncAuctions(token)
 
     return Promise.resolve(token)
@@ -247,7 +255,10 @@ exports.refreshMetadata = async function (id) {
 
 exports.logTransfer = async (data) => {
   try {
-    let token = await Token.findOne({ collectionId: data.tokenAddress.toLowerCase(), tokenId: data.tokenId })
+    const session = await mongoose.startSession()
+    session.startTransaction()
+
+    let token = await Token.findOne({ collectionId: data.tokenAddress.toLowerCase(), tokenId: data.tokenId }).session(session)
     if (!token) { 
       console.log('Token Minted, creating new')
       token = new Token() 
@@ -271,6 +282,9 @@ exports.logTransfer = async (data) => {
 
     if (token.contractType === 'ERC721') token.owner = newOwner
     await token.save()
+
+    await session.commitTransaction()
+    session.endSession()
 
     return Promise.resolve(token)
   } catch (error) {
@@ -298,7 +312,14 @@ function isExpired (timestamp) {
 exports.logListing = async (data) => {
   try {
     if (!data._id) throw new Error('Listing _id must be specified')
-    const token = await Token.findOne({ collectionId: data.collectionId, tokenId: data.tokenId }).populate('listings').exec()
+
+    const session = await mongoose.startSession()
+    session.startTransaction()
+
+    const token = await Token.findOne({ collectionId: data.collectionId, tokenId: data.tokenId })
+                      .populate('listings')
+                      .session(session)
+                      .exec()
     if (!token) throw new Error('No token found')
 
     let exists = token.listings.find(l => l._id.toString() === data._id.toString())
@@ -320,6 +341,9 @@ exports.logListing = async (data) => {
 
     token.markModified('listings')
     await token.save()
+
+    await session.commitTransaction()
+    session.endSession()
 
     updateCollectionPrices(data.collectionId)
 

@@ -1,3 +1,5 @@
+const mongoose = require("mongoose")
+
 const Bid = require("../models/Bid")
 const Listing = require("../models/Listing")
 const Sale = require("../models/Sale")
@@ -9,7 +11,7 @@ exports.cancel = async (data) => {
       tokenId: Number(data.tokenId),
       userAddress: data.owner.toLowerCase(),
       nonce: Number(data.nonce)
-    })
+    }).exec()
     if (!bid) throw new Error('No Bid found')
 
     bid.active = false
@@ -29,6 +31,9 @@ exports.accept = async (data) => {
     const userAddress = (data.owner || data.seller || data.userAddress).toLowerCase()
 
     if (!data.buyer) throw ('Buyer is required')
+
+    const session = await mongoose.startSession()
+    session.startTransaction()
     
     const bid = await Bid.findOne({ 
       contractAddress,
@@ -36,7 +41,7 @@ exports.accept = async (data) => {
       userAddress,
       nonce: Number(data.nonce),
       active: true
-     })
+    }).session(session).exec()
     if (!bid) throw new Error('No Bid found')
 
     bid.active = false
@@ -51,7 +56,7 @@ exports.accept = async (data) => {
       contractAddress, 
       tokenId: Number(data.tokenId),
       userAddress 
-    })
+    }).session(session).exec()
 
     for (const listing of listings) {
       listing.active = false
@@ -60,7 +65,7 @@ exports.accept = async (data) => {
       await listing.save()
     }
 
-    const sale = new Sale({ ...data })
+    const sale = new Sale({ ...data }).session(session)
     sale.collectionId = contractAddress
     sale.seller = userAddress
     sale.timestamp = new Date()
@@ -71,6 +76,9 @@ exports.accept = async (data) => {
     if (data.transactionHash) sale.transactionHash = data.transactionHash
     await sale.save()
 
+    await session.commitTransaction()
+    session.endSession()
+
     return Promise.resolve({ bid, sale })
   } catch (error) {
     return Promise.reject(error)
@@ -79,7 +87,7 @@ exports.accept = async (data) => {
 
 exports.expire = async (id) => {
   try {
-    const bid = await Bid.findOne({ _id: id })
+    const bid = await Bid.findOne({ _id: id }).exec()
     if (!bid) throw new Error('No listing found')
 
     const now = new Date().getTime() / 1000

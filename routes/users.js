@@ -1,5 +1,6 @@
 const router = require("express").Router()
 const parseDuration = require("parse-duration")
+const mongoose = require("mongoose")
 
 // Models
 const Balance = require("../models/Balance")
@@ -93,18 +94,22 @@ router.get("/:address/tokens", async (req, res) => {
       amount: { $gt: 0 }
     }
 
+    const session = await mongoose.startSession()
+    session.startTransaction()
+
     const total = await Balance.countDocuments(query)
     const totalPageCount = Math.ceil(total / size) - 1
 
     const balances = await Balance.find(query)
     .skip(page * size)
     .limit(size)
+    .session(session)
     .exec()
 
     const auctionedItems = await Auction.find({
       owner: req.params.address,
       active: true
-    })
+    }).session(session)
 
     const results = []
     for (const balance of balances) {
@@ -113,6 +118,7 @@ router.get("/:address/tokens", async (req, res) => {
                           .populate('bids')
                           .populate('transfers')
                           .select('-traits -metadata')
+                          .session(session)
                           .exec()
       results.push(token)
     }
@@ -122,10 +128,13 @@ router.get("/:address/tokens", async (req, res) => {
       const token = await Token.findOne({ collectionId: item.collectionAddress, tokenId: item.tokenId })
       .select('-traits -metadata')
       .populate('auctions')
+      .session(session)
       .exec()
 
       auctioned.push(token)
     }
+
+    session.endSession()
 
     return res.status(200).json({ 
       total, 

@@ -2,12 +2,15 @@ const { ethers } = require("ethers")
 const jwt = require("jsonwebtoken")
 const Web3Token = require('web3-token')
 
+const config = require("../config")
+
 function getDomain (chainId) {
+  const contract = config.marketplaces[chainId.toString()]
   return {
     name : "HEXAGONMarketplace",
     version : "1",
     chainId,
-    verifyingContract : process.env.MARKETPLACE_ADDRESS
+    verifyingContract : contract
   }
 }
 
