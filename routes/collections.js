@@ -226,7 +226,7 @@ router.post('/:address/tokens', async (req, res) => {
 
   // If sort is the only filter, return more items
   const keys = Object.keys(findQuery)
-  const sorts = ['lowestPrice', '-highestPrice', 'highestBid', 'lastSoldAt']
+  const sorts = ['lowestPrice', '-highestPrice', 'highestBid']
 
   if (
     keys.length === 2 && 
@@ -235,6 +235,11 @@ router.post('/:address/tokens', async (req, res) => {
     totalPageCount <= page
   ) {
     const q = { collectionId: req.params.address.toLowerCase() }
+
+    if (sort === 'lowestPrice') q.lowestPrice = { $eq: 0 }
+    else if (sort === '-highestPrice') q.highestPrice = { $eq: 0 }
+    else if (sort === 'highestBid') q.highestBid = { $eq: 0 }
+
     count = await Token.countDocuments(q)
     const additionalTokens = await Token
                             .find(q)
