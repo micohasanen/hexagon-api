@@ -16,6 +16,42 @@ const Bid = require("../models/Bid")
 // Middleware
 const { extractUser } = require("../middleware/VerifySignature")
 
+router.get("/search", async (req, res) => {
+  try {
+    if (!req.query.q) return res.status(200).json({ total: 0, results: [] })
+
+    let users = []
+
+    // Check if exact match for address
+    if (req.query.q.startsWith('0x')) {
+      users = await User.find({ address: req.query.q }).select('-role').exec()
+    }
+
+    // Full text search if no result
+    if (!users.length) {
+      users = await User.aggregate([
+        { $match: { $text: { $search: decodeURIComponent(req.query.q) } } },
+        { $sort: { score: { $meta: "textScore" } } },
+        { $unset: "role" },
+        { $limit: 10 }
+      ])
+    }
+
+    // Partial text search
+    if (!users.length) {
+      users = await User.find({
+        $or: [
+          { "username": new RegExp(decodeURIComponent(req.query.q), "gi") }
+        ]
+      }).select('-role').limit(10).exec()
+    }
+
+    return res.status(200).json({ total: users.length, results: users })
+  } catch (error) {
+    return res.status(500).json({ message: 'Something went wrong.', error })
+  } 
+})
+
 router.get('/:address', async (req, res) => {
   try {
     const user = await User.findOne({ address: req.params.address }).select('-role').exec()
