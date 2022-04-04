@@ -261,7 +261,7 @@ exports.logTransfer = async (data) => {
     let token = await Token.findOne({ collectionId: data.tokenAddress.toLowerCase(), tokenId: data.tokenId }).session(session).exec()
     if (!token) { 
       console.log('Token Minted, creating new')
-      token = new Token().session(session)
+      token = new Token()
       token.collectionId = data.tokenAddress
       token.tokenId = data.tokenId
       token.contractType = data.contractType || 'ERC721'
