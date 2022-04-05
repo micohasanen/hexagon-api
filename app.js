@@ -22,10 +22,6 @@ app.use(rateLimiter)
 mongoose.connect(
   `mongodb+srv://${process.env.MONGO_USER}:${process.env.MONGO_PASS}@${process.env.MONGO_URL}/${process.env.MONGO_DB_NAME}?retryWrites=true&w=majority`)
 
-if (process.env.NODE_ENV === 'production') {
-  mongoose.set('autoIndex', false)
-}
-
 app.get("/", (req, res) => {
   return res.send('Hive API')
 })
