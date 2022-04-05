@@ -83,6 +83,7 @@ router.get('/search', async (req, res) => {
 
       collections = await Collection.aggregate([
         { $match: { $text: { $search: decodeURIComponent(req.query.q) } } },
+        { $match: { whitelisted: true } },
         { $sort: { score: { $meta: "textScore" } } },
         { $unset: 'traits' },
         { $limit: 10 }
@@ -93,7 +94,8 @@ router.get('/search', async (req, res) => {
         collections = await Collection.find({
           $or: [
             { "name": new RegExp(decodeURIComponent(req.query.q), "gi") }
-          ]
+          ],
+          whitelisted: true
         }).select("-traits")
       }
 
