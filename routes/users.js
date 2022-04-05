@@ -64,7 +64,6 @@ router.get('/:address', async (req, res) => {
     ])
 
     let estimatedValue = 0
-    const values = []
 
     for (const balance of balances) {
       const collection = await Collection.findOne({ address: balance._id }).distinct('floorPrice')
