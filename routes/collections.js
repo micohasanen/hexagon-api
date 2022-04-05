@@ -143,6 +143,8 @@ router.post('/:address/tokens', async (req, res) => {
   let priceTo = isNaN(req.query.priceTo) ? null : req.query.priceTo
   let rarityFrom = isNaN(req.query.rarityFrom) ? null : req.query.rarityFrom
   let rarityTo = isNaN(req.query.rarityTo) ? null : req.query.rarityTo
+  let rarityRankFrom = isNaN(req.query.rarityRankFrom) ? null : req.query.rarityRankFrom
+  let rarityRankTo = isNaN(req.query.rarityRankTo) ? null : req.query.rarityRankTo
   let findQuery = { collectionId: req.params.address.toLowerCase() }
   const filter = req.query.filter || []
 
@@ -197,6 +199,12 @@ router.post('/:address/tokens', async (req, res) => {
       findQuery.rarity.$gte = rarityFrom 
     }
     if (rarityTo) findQuery.rarity.$lte = rarityTo 
+  } else if (rarityRankFrom || rarityRankTo) {
+    if (!findQuery.rarityRank) findQuery.rarityRank = { $exists: true }
+    if (rarityRankFrom) {
+      findQuery.rarityRank.$lte = rarityRankFrom
+    }
+    if (rarityRankTo) findQuery.rarityRank.$gte = rarityRankTo
   }
 
   // Filters
