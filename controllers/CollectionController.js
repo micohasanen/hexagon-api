@@ -75,7 +75,7 @@ exports.generateRarity = async (address) => {
       const qty = tokens.length
       let scores = []
       traits.forEach((trait) => {
-        if (!excluded.includes(trait.type)) {
+        if (!excluded.includes(trait.type) || trait.isNumeric) {
           for (const attr of trait.attributes) {
             attr.rarityPercent = attr.count / qty * 100
             attr.rarityFractional = attr.rarityPercent * 0.01
