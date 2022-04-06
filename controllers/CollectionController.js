@@ -65,7 +65,7 @@ exports.generateRarity = async (address) => {
           trait.traitCount += 1
         } else {
           trait.traitCount += 1
-          if (!attr.display_type)
+          if (!trait.isNumeric)
             trait.attributes.push({ value: attr.value, count: 1, id: nanoid() })
         }
       }
