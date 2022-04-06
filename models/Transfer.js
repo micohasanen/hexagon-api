@@ -65,6 +65,7 @@ TransferSchema.pre('save', async function(next) {
 })
 
 TransferSchema.post('save', function() {
+  console.log("Transfer Saved for", this.tokenId)
   TokenController.logTransfer(this)
 })
 
