@@ -15,14 +15,26 @@ module.exports = () => {
     async (job) => {
       await TransferController.add(job.data)
       return true
-    }, { connection: config.redisConnection })
+    }, { 
+      connection: config.redisConnection, 
+      limiter: {
+        max: 7,
+        duration: 1000
+      }
+    })
 
   // Process new Metadata refresh request
   const metadataWorker = new Worker('metadata', 
   async (job) => {
     await TokenController.refreshMetadata(job.data)
     return true
-  }, { connection: config.redisConnection })
+  }, { 
+    connection: config.redisConnection,
+    limiter: {
+      max: 10,
+      duration: 1000
+    }
+  })
 
   // Process new batch reveal 
   const rarityWorker = new Worker('rarity', 

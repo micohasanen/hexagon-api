@@ -123,12 +123,12 @@ exports.generateRarity = async (address) => {
     tokenScores = tokenScores.sort((a, b) => { return b.rarity - a.rarity })
 
     // And finally, get token rarity rank
-    tokens.forEach(async (token) => {
+    for (const token of tokens) {
       const rank = tokenScores.findIndex((s) => s._id === token._id)
       if (rank !== -1) token.rarityRank = rank + 1
 
       await token.save()
-    })
+    }
 
     console.log(rarity)
 
@@ -138,7 +138,7 @@ exports.generateRarity = async (address) => {
 
     return Promise.resolve(collection)
   } catch (error) {
-    console.log(error)
+    console.error(error)
     return Promise.reject(error)
   }
 }

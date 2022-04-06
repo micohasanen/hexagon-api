@@ -25,7 +25,7 @@ exports.syncCollectionTransfers = async (address) => {
   try {
     if (!address) throw new Error('Missing collection address.')
 
-    const collection = await Collection.findOne({ address })
+    const collection = await Collection.findOne({ address }).exec()
     if (!collection) throw new Error('No collection found.')
 
     let total = 1000
@@ -65,11 +65,7 @@ exports.add = async (data) => {
 
     const exists = await Transfer.findOne({ signature: hash }).exec()
     if (!exists) {
-      const transfer = new Transfer()
-      transfer.signature = hash
-      Object.entries(data).forEach(([key, val]) => {
-        transfer[key] = val
-      })
+      const transfer = new Transfer({ ...data, signature: hash })
       await transfer.save()
     }
 

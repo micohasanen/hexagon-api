@@ -4,6 +4,8 @@ const { nanoid } = require("nanoid")
 
 // Queues
 const transferQueue = new Queue('transfers', { connection: config.redisConnection })
+new QueueScheduler('transfers', { connection: config.redisConnection })
+
 const metadataQueue = new Queue('metadata',  { connection: config.redisConnection })
 
 new QueueScheduler('rarity', { connection: config.redisConnection })

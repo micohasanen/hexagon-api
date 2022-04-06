@@ -117,15 +117,21 @@ exports.add = async (data) => {
   try {
     if (!data.collectionId || !data.tokenId) throw new Error('Missing required data.')
 
+    let isNew = false
     let token = await Token.findOne({ collectionId: data.collectionId, tokenId: data.tokenId })
-    if (!token) token = new Token()
+    if (!token) {
+      token = new Token()
+      isNew = true
+    }
 
-    Object.entries(data).forEach(([key, val]) => {
-      token[key] = val
-    })
-
-    await token.save()
-    addMetadata(token._id)
+    if (isNew) {
+      Object.entries(data).forEach(([key, val]) => {
+        token[key] = val
+      })
+  
+      await token.save()
+      addMetadata(token._id)
+    }
 
     return Promise.resolve(token)
   } catch (error) {
