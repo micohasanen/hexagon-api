@@ -210,7 +210,7 @@ CollectionSchema.methods.getAllTokens = async function () {
 
           await this.save()
 
-          generateRarity(this.address)
+          // generateRarity(this.address)
         }
       }
     }
