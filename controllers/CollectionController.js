@@ -65,7 +65,7 @@ exports.generateRarity = async (address) => {
           trait.traitCount += 1
         } else {
           trait.traitCount += 1
-          if (!trait.isNumeric)
+          if (!excluded.includes(attr.trait_type) & attr.display_type !== 'date')
             trait.attributes.push({ value: attr.value, count: 1, id: nanoid() })
         }
       }
@@ -75,7 +75,7 @@ exports.generateRarity = async (address) => {
       const qty = tokens.length
       let scores = []
       traits.forEach((trait) => {
-        if (!excluded.includes(trait.type) || trait.isNumeric) {
+        if (!excluded.includes(trait.type)) {
           for (const attr of trait.attributes) {
             attr.rarityPercent = attr.count / qty * 100
             attr.rarityFractional = attr.rarityPercent * 0.01
