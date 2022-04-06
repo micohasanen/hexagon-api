@@ -1,5 +1,4 @@
 const { nanoid } = require("nanoid")
-const mongoose = require("mongoose")
 const Collection = require("../models/Collection")
 const Token = require("../models/Token")
 const Listing = require("../models/Listing")
@@ -22,16 +21,13 @@ exports.add = async (data) => {
 // https://raritytools.medium.com/ranking-rarity-understanding-rarity-calculation-methods-86ceaeb9b98c
 exports.generateRarity = async (address) => {
   try {
-    const session = await mongoose.startSession()
-    session.startTransaction()
-
-    const collection = await Collection.findOne({ address }).session(session).exec()
+    const collection = await Collection.findOne({ address }).exec()
     if (!collection) throw new Error('No collection found.')
 
     console.log('Rarity generation started for' , address)
     const excluded = collection.excludeFromRarity || []
 
-    const tokens = await Token.find({ collectionId: address }).session(session).exec()
+    const tokens = await Token.find({ collectionId: address }).exec()
     if (tokens.length) collection.traits = []
     const traits = collection.traits
 
@@ -139,9 +135,6 @@ exports.generateRarity = async (address) => {
     collection.rarity = rarity
     collection.markModified('rarity')
     await collection.save()
-
-    await session.commitTransaction()
-    session.endSession()
 
     return Promise.resolve(collection)
   } catch (error) {

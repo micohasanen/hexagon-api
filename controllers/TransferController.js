@@ -63,7 +63,7 @@ exports.add = async (data) => {
     .update(`${data.blockNumber}${data.fromAddress}${data.toAddress}${data.tokenId}`)
     .digest('hex')
 
-    const exists = await Transfer.findOne({ signature: hash })
+    const exists = await Transfer.findOne({ signature: hash }).exec()
     if (!exists) {
       const transfer = new Transfer()
       transfer.signature = hash
@@ -71,11 +71,9 @@ exports.add = async (data) => {
         transfer[key] = val
       })
       await transfer.save()
-      return Promise.resolve()
-    } else {
-      await exists.save()
-      return Promise.resolve()
     }
+
+    return Promise.resolve()
   } catch (error) {
     console.log(error)
     return Promise.reject(error)

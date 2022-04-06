@@ -65,9 +65,7 @@ TransferSchema.pre('save', async function(next) {
 })
 
 TransferSchema.post('save', function() {
-  TokenController.logTransfer(this).then((token) => {
-    if (!token.metadata) addMetadata(token._id)
-  })
+  TokenController.logTransfer(this)
 })
 
 module.exports = mongoose.model('Transfer', TransferSchema)
