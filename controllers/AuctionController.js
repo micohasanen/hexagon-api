@@ -15,13 +15,14 @@ function syncAuctions (auction) {
 
 exports.startAuction = async (data) => {
   try {
-    const auction = await Auction.findOne({ 
+    const auctions = await Auction.find({ 
       collectionAddress: data.collectionAddress.toLowerCase(),
       owner: data.owner.toLowerCase(),
-      tokenId: Number(data.tokenId),
-      active: true
-    })
-    if (!auction) throw new Error('No auction found')
+      tokenId: Number(data.tokenId)
+    }).sort('-createdAt').limit(1).exec()
+    if (!auctions.length) throw new Error('No auction found')
+
+    const auction = auctions[0]
 
     auction.active = true
 
