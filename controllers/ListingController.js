@@ -13,7 +13,8 @@ exports.cancel = async (data) => {
       contractAddress: data.nftContractAddress.toLowerCase(),
       tokenId: Number(data.tokenId),
       userAddress: data.owner.toLowerCase(),
-      nonce: Number(data.nonce)
+      nonce: Number(data.nonce),
+      active: true
     })
     if (!listing) throw new Error('No Listing found')
 
@@ -37,7 +38,6 @@ exports.accept = async (data) => {
     if (data.buyer.toLowerCase() === userAddress.toLowerCase()) throw ("Can't buy your own token.")
 
     const session = await mongoose.startSession()
-    session.startTransaction()
     
     const listing = await Listing.findOne({ 
       contractAddress,
@@ -71,7 +71,9 @@ exports.accept = async (data) => {
       await bid.save()
     }
 
-    const sale = new Sale({ ...data }).session(session)
+    session.endSession()
+
+    const sale = new Sale({ ...data })
     sale.collectionId = contractAddress
     sale.seller = userAddress
     sale.timestamp = new Date()
@@ -81,9 +83,6 @@ exports.accept = async (data) => {
     if (data.blockNumber) sale.blockNumber = data.blockNumber
     if (data.transactionHash) sale.transactionHash = data.transactionHash
     await sale.save()
-
-    await session.commitTransaction()
-    session.endSession()
 
     NotificationController.addNotification({
       value: sale.value,
