@@ -68,7 +68,8 @@ async function updateBalances (data) {
 
   return Promise.resolve(owner)
   } catch (error) {
-    return Promise.reject(error)
+    console.error(error)
+    return Promise.resolve(owner)
   }
 }
 
@@ -255,7 +256,6 @@ exports.refreshMetadata = async function (id) {
 
 exports.logTransfer = async (data) => {
   try {
-    console.log('Logging transfer to ', data.toAddress)
     let token = await Token.findOne({ collectionId: data.tokenAddress.toLowerCase(), tokenId: data.tokenId }).exec()
     if (!token) { 
       console.log('Token Minted, creating new')

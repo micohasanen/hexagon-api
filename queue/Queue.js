@@ -31,7 +31,7 @@ function calculateDelay (expiry, surplus = 30000) { // 30s surplus just to be sa
 }
 
 exports.addTransfer = async (data) => {
-  await transferQueue.add(nanoid(), data, { delay: 30000 })
+  await transferQueue.add(nanoid(), data, { delay: 45000 })
 }
 
 exports.addMetadata = async (tokenIdMongo) => {
