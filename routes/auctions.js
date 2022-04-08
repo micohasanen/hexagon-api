@@ -23,10 +23,6 @@ router.post("/", [
       return res.status(400).json({ message: 'Validation failed.', error: validationResult(req).array() })
     }
 
-    let percentIncrement = req.body.percentIncrement
-    if (!percentIncrement || isNaN(percentIncrement) || percentIncrement < 50) 
-      percentIncrement = 50
-
     const collection = await Collection.findOne({ address: req.body.collectionAddress })
     if (!collection) return res.status(404).json({ message: 'No collection found.' })
 

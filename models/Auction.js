@@ -29,10 +29,6 @@ const AuctionSchema = mongoose.Schema({
     type: Number,
     required: true
   },
-  percentIncrement: {
-    type: Number,
-    required: true
-  },
   quantity: {
     type: Number,
     required: true
