@@ -10,7 +10,8 @@ exports.cancel = async (data) => {
       contractAddress: data.nftContractAddress.toLowerCase(),
       tokenId: Number(data.tokenId),
       userAddress: data.owner.toLowerCase(),
-      nonce: Number(data.nonce)
+      nonce: Number(data.nonce),
+      active: true
     }).exec()
     if (!bid) throw new Error('No Bid found')
 

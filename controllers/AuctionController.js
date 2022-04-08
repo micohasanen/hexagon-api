@@ -18,7 +18,8 @@ exports.startAuction = async (data) => {
     const auction = await Auction.findOne({ 
       collectionAddress: data.collectionAddress.toLowerCase(),
       owner: data.owner.toLowerCase(),
-      tokenId: Number(data.tokenId)
+      tokenId: Number(data.tokenId),
+      active: true
     })
     if (!auction) throw new Error('No auction found')
 
@@ -44,7 +45,8 @@ exports.placeBid = async (data) => {
     const auction = await Auction.findOne({ 
       collectionAddress: data.collectionAddress.toLowerCase(),
       owner: data.owner.toLowerCase(),
-      tokenId: Number(data.tokenId)
+      tokenId: Number(data.tokenId),
+      active: true
     })
     if (!auction) throw new Error('No auction found')
 
@@ -81,7 +83,8 @@ exports.endAuction = async (data) => {
     const auction = await Auction.findOne({ 
       collectionAddress: data.collectionAddress.toLowerCase(),
       owner: data.owner.toLowerCase(),
-      tokenId: Number(data.tokenId)
+      tokenId: Number(data.tokenId),
+      active: true
     })
     if (!auction) throw new Error('No auction found')
 
