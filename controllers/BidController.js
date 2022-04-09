@@ -34,7 +34,6 @@ exports.accept = async (data) => {
     if (!data.buyer) throw ('Buyer is required')
 
     const session = await mongoose.startSession()
-    session.startTransaction()
     
     const bid = await Bid.findOne({ 
       contractAddress,
@@ -66,7 +65,9 @@ exports.accept = async (data) => {
       await listing.save()
     }
 
-    const sale = new Sale({ ...data }).session(session)
+    session.endSession()
+
+    const sale = new Sale({ ...data })
     sale.collectionId = contractAddress
     sale.seller = userAddress
     sale.timestamp = new Date()
@@ -76,9 +77,6 @@ exports.accept = async (data) => {
     if (data.blockNumber) sale.blockNumber = data.blockNumber
     if (data.transactionHash) sale.transactionHash = data.transactionHash
     await sale.save()
-
-    await session.commitTransaction()
-    session.endSession()
 
     return Promise.resolve({ bid, sale })
   } catch (error) {
