@@ -115,6 +115,10 @@ const CollectionSchema = mongoose.Schema({
   highestPrice: {
     type: Number,
     default: 0
+  },
+  minPrice: {
+    type: Number,
+    default: 0
   }
 }, { timestamps: true })
 
