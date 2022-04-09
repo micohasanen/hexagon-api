@@ -37,9 +37,13 @@ router.post("/", [
     const address = req.body.contractAddress
     const userAddress = req.body.userAddress
 
-    const collection = await Collection.findOne({ address: address.toLowerCase() }).select('chain')
+    const collection = await Collection.findOne({ address: address.toLowerCase() }).select('chain minPrice')
     const token = await Token.findOne({ collectionId: address, tokenId: req.body.tokenId }).populate('listings', { 'active': 1, '_id': 1 })
     if (!collection || !token) return res.status(400).json({ message: 'Invalid token or collection ID.'})
+
+    if (collection.minPrice && collection.minPrice > Number(req.body.pricePerItem)) {
+      return res.status(400).json({ message: 'Price must be more than minimum price.' })
+    }
 
     const isTokenOwner = await TokenController.isOwnerOfToken(address, userAddress, req.body.tokenId, req.body.quantity)
 
