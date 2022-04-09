@@ -69,7 +69,7 @@ router.post("/", [
     const user = req.body.userAddress
     const data = req.body
 
-    const collection = await Collection.findOne({ address: address }).select("chain currency").exec()
+    const collection = await Collection.findOne({ address: address }).select("chain currency minPrice").exec()
     if (!collection) return res.status(406).json({ message: 'Invalid collection address.' })
 
     let prices = await Listing.aggregate([
@@ -84,6 +84,10 @@ router.post("/", [
       if(data.pricePerItem < prices[0].floorPrice / 2) { 
         return res.status(400).json({ message: 'Bid must be at least 50% of floor price.'}) 
       }
+    }
+
+    if (collection.minPrice && collection.minPrice > Number(req.body.pricePerItem)) {
+      return res.status(400).json({ message: 'Price must be more than minimum price.' })
     }
 
     const currency = collection.currency?.contract || process.env.DEFAULT_CURRENCY

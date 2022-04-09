@@ -26,6 +26,10 @@ router.post("/", [
     const collection = await Collection.findOne({ address: req.body.collectionAddress })
     if (!collection) return res.status(404).json({ message: 'No collection found.' })
 
+    if (collection.minPrice && collection.minPrice > Number(req.body.minBid)) {
+      return res.status(400).json({ message: 'Price must be more than minimum price.' })
+    }
+
     if (!collection.contractType) {
       const { Provider } = GetProvider(collection.chain)
       const code = Provider.eth.getCode(collection.address)

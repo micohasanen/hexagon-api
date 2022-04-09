@@ -76,7 +76,7 @@ router.get('/search', async (req, res) => {
   try {
       if (!req.query.q) return res.status(200).json({ total: 0, results: [] })
 
-      const addressMatch = await Collection.findOne({ address: req.query.q })
+      const addressMatch = await Collection.findOne({ address: req.query.q, whitelisted: true })
       if (addressMatch) return res.status(200).json({ total: 1, results: [ addressMatch ]})
 
       let collections = []
