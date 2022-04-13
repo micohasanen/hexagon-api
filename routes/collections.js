@@ -210,11 +210,14 @@ router.post('/:address/tokens', async (req, res) => {
   // Filters
   if (filter.includes('auctions')) {
     findQuery.auctions = { $exists: true, $type: 'array', $ne: [] }
-  } else if (filter.includes('listed') && filter !== 'unlisted') {
+  } 
+  if (filter.includes('listed') && filter !== 'unlisted') {
     findQuery.lowestPrice = { $exists: true, $gt: 0 }
-  } else if (filter.includes('has-bids')) {
+  } 
+  if (filter.includes('has-bids')) {
     findQuery.highestBid = { $exists: true, $gt: 0 }
-  } else if (filter.includes('unlisted')) {
+  } 
+  if (filter.includes('unlisted')) {
     findQuery.lowestPrice = { $eq: 0 }
   }
 

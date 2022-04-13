@@ -18,7 +18,14 @@ const GetProvider = require("../utils/ChainProvider")
 
 const contractUtils = require("../utils/contractType")
 
+const knownGateways = ['https://gateway.pinata.cloud/ipfs/', 'https://gateway.ipfs.io/ipfs/', 'https://gateway.moralisipfs.com/ipfs/']
+
 function resolveIpfs (path) {
+  for (const gateway of knownGateways) {
+    console.log('matches', gateway)
+    if (path?.startsWith(gateway))
+      return path.replace(gateway, process.env.IPFS_GATEWAY)
+  }
   if (path?.startsWith('ipfs://'))
     return path.replace('ipfs://', process.env.IPFS_GATEWAY)
   return path
