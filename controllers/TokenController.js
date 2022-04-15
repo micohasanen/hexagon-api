@@ -22,8 +22,8 @@ const knownGateways = ['https://gateway.pinata.cloud/ipfs/', 'https://gateway.ip
 
 function resolveIpfs (path) {
   for (const gateway of knownGateways) {
-    console.log('matches', gateway)
     if (path?.startsWith(gateway))
+      console.log('matches', gateway)
       return path.replace(gateway, process.env.IPFS_GATEWAY)
   }
   if (path?.startsWith('ipfs://'))
@@ -196,6 +196,7 @@ exports.refreshMetadata = async function (id) {
 
     if (tokenUri) {
       if (tokenUri.startsWith('ipfs://')) tokenUri = tokenUri.replace('ipfs://', process.env.IPFS_GATEWAY)
+      console.log({ tokenUri })
       token.tokenUri = tokenUri
       const fetched = await axios.get(tokenUri)
 
@@ -256,7 +257,7 @@ exports.refreshMetadata = async function (id) {
 
     return Promise.resolve(token)
  } catch (error) {
-    console.error(error)
+    console.error(error?.message)
     return Promise.reject(error)
   }
 }

@@ -2,6 +2,7 @@ const Transfer = require("../models/Transfer")
 const Collection = require("../models/Collection")
 const { Moralis } = require("../utils/Moralis")
 const { addTransfer } = require("../queue/Queue")
+const Web3 = require("web3")
 
 const crypto = require("crypto")
 
@@ -30,13 +31,18 @@ exports.syncCollectionTransfers = async (address) => {
 
     let total = 1000
     const batchSize = 500
+    let cursor = ''
 
     for (let i = 0; i <= total; i += batchSize) {
-      const transfers = await Moralis.Web3API.token.getContractNFTTransfers({
+      const settings = {
         address,
-        chain: collection.chain,
-        offset: i
-      })
+        chain: collection.chain
+      }
+      if (cursor) settings.cursor = cursor
+
+      const transfers = await Moralis.Web3API.token.getContractNFTTransfers(settings)
+
+      cursor = transfers.cursor
 
       total = parseInt(transfers.total)
       console.log({ total, i })
@@ -52,6 +58,7 @@ exports.syncCollectionTransfers = async (address) => {
 
     return Promise.resolve(true)
   } catch (error) {
+    console.error(error.message)
     return Promise.reject(error)
   }
 }
