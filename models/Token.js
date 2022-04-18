@@ -1,4 +1,5 @@
 const mongoose = require("mongoose")
+const { addMetadata } = require("../queue/Queue")
 
 const TokenSchema = mongoose.Schema({
   tokenId: {
@@ -76,6 +77,15 @@ TokenSchema.pre('save', function (next) {
   if (this.metadata?.description) this.description = this.metadata.description
 
   next()
+})
+
+TokenSchema.post('find', function (results) {
+  results.forEach((result) => {
+    console.log(result)
+    if (!result.imageHosted) {
+      addMetadata(result._id)
+    }
+  })
 })
 
 TokenSchema.virtual('tokenCollection', {
