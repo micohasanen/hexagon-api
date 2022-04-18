@@ -257,7 +257,7 @@ exports.refreshMetadata = async function (id) {
 
     return Promise.resolve(token)
  } catch (error) {
-    console.error(error?.message)
+    console.error(error)
     return Promise.reject(error)
   }
 }
@@ -289,7 +289,7 @@ exports.logTransfer = async (data) => {
     if (token.contractType === 'ERC721') token.owner = newOwner
     await token.save()
 
-    if (!token.metadata) addMetadata(token._id)
+    if (!token.metadata || !token.imageHosted) addMetadata(token._id)
 
     return Promise.resolve(token)
   } catch (error) {
@@ -411,9 +411,12 @@ exports.syncAuctions = async (data = { collectionId: '', tokenId: null }) => {
 
     if (auctions.length) {
       token.auctions = auctions
-      token.markModified('auctions')
-      await token.save()
+    } else {
+      token.auctions = []
     }
+
+    token.markModified('auctions')
+    await token.save()
 
     return Promise.resolve(true)
   } catch (error) {
