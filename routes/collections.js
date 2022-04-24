@@ -523,6 +523,7 @@ router.get('/:address/sales', async (req, res) => {
 router.post('/', async (req, res) => {
   try {
     if (!req.body?.address) return res.status(400).json({ message: 'Missing required parameters.' })
+    if (!req.body.slug) req.body.slug = nanoid()
 
     const collection = new Collection({ ...req.body, whitelisted: false, pending: true })
     if (!collection.currency) {
