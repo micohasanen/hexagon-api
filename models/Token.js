@@ -81,7 +81,6 @@ TokenSchema.pre('save', function (next) {
 
 TokenSchema.post('find', function (results) {
   results.forEach((result) => {
-    console.log(result)
     if (!result.imageHosted) {
       addMetadata(result._id)
     }
