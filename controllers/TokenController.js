@@ -132,7 +132,6 @@ exports.add = async (data) => {
     let token = await Token.findOne({ collectionId: data.collectionId, tokenId: data.tokenId })
     if (!token) {
       token = new Token({ ...data, tokenHash })
-      isNew = true
       await token.save()
 
       addMetadata(token._id)
