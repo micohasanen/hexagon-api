@@ -6,7 +6,7 @@ module.exports = {
     password: process.env.REDIS_PASS,
     connectTimeout: 10000,
     lazyConnect: true,
-    // tls: {}
+    tls: {}
   },
   marketplaces: {
     '80001': process.env.MARKETPLACE_MUMBAI, 
