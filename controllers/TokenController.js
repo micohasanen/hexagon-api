@@ -3,6 +3,7 @@ const mongoose = require("mongoose")
 const { addMetadata, generateRarity, updateCollectionPrices } = require("../queue/Queue")
 const { nanoid } = require("nanoid")
 const { Moralis } = require("../utils/Moralis")
+const crypto = require("crypto")
 
 // ABIs
 const ABI_ERC721 = require("../abis/ERC721.json")
@@ -125,19 +126,15 @@ exports.add = async (data) => {
   try {
     if (!data.collectionId || !data.tokenId) throw new Error('Missing required data.')
 
-    let isNew = false
+    // Prevent multiple token ids within the same collection to be stored in the db
+    const tokenHash = crypto.createHash('sha256').update(`${data.collectionId.toLowerCase()}:${data.tokenId}`).digest('hex')
+
     let token = await Token.findOne({ collectionId: data.collectionId, tokenId: data.tokenId })
     if (!token) {
-      token = new Token()
+      token = new Token({ ...data, tokenHash })
       isNew = true
-    }
-
-    if (isNew) {
-      Object.entries(data).forEach(([key, val]) => {
-        token[key] = val
-      })
-  
       await token.save()
+
       addMetadata(token._id)
     }
 
@@ -417,6 +414,26 @@ exports.syncAuctions = async (data = { collectionId: '', tokenId: null }) => {
 
     token.markModified('auctions')
     await token.save()
+
+    return Promise.resolve(true)
+  } catch (error) {
+    return Promise.reject(error)
+  }
+}
+
+exports.removeDuplicates = async (collectionId) => {
+  try {
+    const counts = await Token.aggregate([
+      { $match: { collectionId: collectionId.toLowerCase() } },
+      { $group: { _id: "$tokenId", count: { "$sum": 1 }}},
+      { $match: { count: { $gt: 1 }}} 
+    ])
+
+    console.log(counts)
+
+    for (const count of counts) {
+      await Token.deleteOne({ tokenId: count._id, collectionId })
+    }
 
     return Promise.resolve(true)
   } catch (error) {

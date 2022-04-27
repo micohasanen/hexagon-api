@@ -184,14 +184,20 @@ CollectionSchema.methods.getAllTokens = async function () {
     let processed = 0
     let contractType = ''
 
+    let cursor = ''
+
     for (let i = 0; i < Math.ceil(total / batchSize); i++) {
-      const tokenData = await Moralis.Web3API.token.getAllTokenIds({
+      const settings = {
         address: this.address,
-        chain: this.chain,
-        offset: i * batchSize
-      })
+        chain: this.chain
+      }
+      if (cursor) settings.cursor = cursor
+
+      const tokenData = await Moralis.Web3API.token.getAllTokenIds(settings)
 
       total = parseInt(tokenData.total)
+      cursor = tokenData.cursor
+
       if (!total) return
       console.log({ total, i })
 
