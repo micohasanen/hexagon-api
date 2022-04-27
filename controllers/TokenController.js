@@ -200,7 +200,7 @@ exports.refreshMetadata = async function (id) {
       if (tokenUri.startsWith('https://')) {
         fetched = await axios.get(tokenUri)
       } else {
-        const json = atob(tokenUri.split(',')[1])
+        const json = Buffer.from(tokenUri.split(',')[1], 'base64').toString('utf8')
         fetched = { data: JSON.parse(json) }
       }
 
