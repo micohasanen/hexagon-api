@@ -193,26 +193,36 @@ exports.refreshMetadata = async function (id) {
 
     if (tokenUri) {
       if (tokenUri.startsWith('ipfs://')) tokenUri = tokenUri.replace('ipfs://', process.env.IPFS_GATEWAY)
-      console.log({ tokenUri })
       token.tokenUri = tokenUri
-      const fetched = await axios.get(tokenUri)
+
+      let fetched
+
+      if (tokenUri.startsWith('https://')) {
+        fetched = await axios.get(tokenUri)
+      } else {
+        const json = atob(tokenUri.split(',')[1])
+        fetched = { data: JSON.parse(json) }
+      }
 
       if (fetched.data) {
         // Generate Thumbnail Images
         if (token.metadata?.image !== fetched.data.image || !token.imageHosted) {
           if (fetched.data.image?.startsWith('ipfs://')) token.imageHosted = fetched.data.image
           else {
-            const requestUrl = resolveIpfs(fetched.data.image)
-            if (requestUrl) {
+            let image
+
+            if (fetched.data.image.startsWith('https://')) {
               const imageReq = await axios.get(resolveIpfs(fetched.data.image), { responseType: 'arraybuffer' })
-              const image = imageReq.data
-              const buffer = Buffer.from(image)
-              const upload = new Moralis.File(`hexagon_${nanoid()}.jpg`, Array.from(buffer))
-              await upload.saveIPFS({ useMasterKey: true })
-              const hash = upload.hash()
-    
-              token.imageHosted = `ipfs://${hash}`
+              image = imageReq.data
+            } else {
+              image = fetched.data.image
             }
+
+            const buffer = Buffer.from(image)
+            const upload = new Moralis.File(`hexagon_${nanoid()}.jpg`, Array.from(buffer))
+            await upload.saveIPFS({ useMasterKey: true })
+            const hash = upload.hash()
+            token.imageHosted = `ipfs://${hash}`
           }
         }
 
