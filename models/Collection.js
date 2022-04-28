@@ -119,7 +119,9 @@ const CollectionSchema = mongoose.Schema({
   minPrice: {
     type: Number,
     default: 0
-  }
+  },
+  royaltyFee: Number,
+  royaltyRecipient: String
 }, { timestamps: true })
 
 
