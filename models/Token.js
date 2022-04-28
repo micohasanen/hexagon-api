@@ -28,7 +28,10 @@ const TokenSchema = mongoose.Schema({
     type: Array, 
     index: true
   },
-  rarity: Number,
+  rarity: {
+    type: Number,
+    index: true
+  },
   rarityRank: Number,
   transfers: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Transfer' }],
   listings: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Listing' }],
