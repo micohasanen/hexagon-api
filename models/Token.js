@@ -39,19 +39,23 @@ const TokenSchema = mongoose.Schema({
   auctions: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Auction' }],
   highestPrice: {
     type: Number,
-    default: 0
+    default: 0,
+    index: true
   },
   lowestPrice: {
     type: Number,
-    default: 0
+    default: 0,
+    index: true
   },
   highestBid: {
     type: Number,
-    default: 0
+    default: 0,
+    index: true
   },
   lowestBid: {
     type: Number,
-    default: 0
+    default: 0,
+    index: true
   },
   highestBidder: {
     type: String,
@@ -64,14 +68,21 @@ const TokenSchema = mongoose.Schema({
     lowercase: true,
     trim: true
   },
-  lastSoldAt: Date,
+  lastSoldAt: { 
+    type: Date, 
+    index: true
+  },
   lastSalePrice: { 
     type: Number
   },
-  lastListedAt: Date,
+  lastListedAt: {
+    type: Date,
+    index: true 
+  },
   tokenHash: {
     type: String,
-    unique: true
+    unique: true,
+    index: true
   }
 }, { timestamps: true, toObject: { virtuals: true }, toJSON: { virtuals: true } })
 
