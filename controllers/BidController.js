@@ -29,18 +29,19 @@ exports.cancel = async (data) => {
 exports.accept = async (data) => {
   try {
     const contractAddress = (data.nftContractAddress || data.contractAddress).toLowerCase()
-    const userAddress = (data.owner || data.seller || data.userAddress).toLowerCase()
+    const userAddress = data.buyer.toLowerCase()
 
-    if (!data.buyer) throw ('Buyer is required')
+    if (!data.owner) throw ('Buyer is required')
+
+    console.log(data)
 
     const session = await mongoose.startSession()
     
     const bid = await Bid.findOne({ 
       contractAddress,
-      tokenId: Number(data.tokenId),
+      tokenId: data.tokenId,
       userAddress,
-      nonce: Number(data.nonce),
-      active: true
+      nonce: data.nonce
     }).session(session).exec()
     if (!bid) throw new Error('No Bid found')
 
@@ -53,9 +54,9 @@ exports.accept = async (data) => {
 
     // Since the token changes ownership, we cancel all listings as well
     const listings = await Listing.find({ 
-      contractAddress, 
-      tokenId: Number(data.tokenId),
-      userAddress 
+      contractAddress,
+      tokenId: data.tokenId,
+      userAddress: data.owner.toLowerCase()
     }).session(session).exec()
 
     for (const listing of listings) {
@@ -69,7 +70,7 @@ exports.accept = async (data) => {
 
     const sale = new Sale({ ...data })
     sale.collectionId = contractAddress
-    sale.seller = userAddress
+    sale.seller = data.owner
     sale.timestamp = new Date()
     sale.saleType = 'bid'
     sale.buyer = data.buyer
@@ -80,6 +81,7 @@ exports.accept = async (data) => {
 
     return Promise.resolve({ bid, sale })
   } catch (error) {
+    console.error(error)
     return Promise.reject(error)
   }
 }
@@ -92,6 +94,7 @@ exports.expire = async (id) => {
     const now = new Date().getTime() / 1000
     if (bid.expiry <= now) { 
       bid.active = false 
+      bid.expired = true
       bid.r = bid.s = 'null'
       await bid.save()
     }

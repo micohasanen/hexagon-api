@@ -101,8 +101,7 @@ router.post("/", [
     const hasBid = await Bid.findOne({ active: true, tokenId: data.tokenId, contractAddress: address, userAddress: user })
     if (hasBid) return res.status(400).json({ message: 'Only one bid allowed.' })
 
-    const bid = new Bid({ ...data, chain: collection.chain })
-    bid.active = true
+    const bid = new Bid({ ...data, chain: collection.chain, active: true })
     await bid.save()
 
     sendNotification(bid)

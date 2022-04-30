@@ -62,6 +62,10 @@ const BidSchema = mongoose.Schema({
     type: Boolean, 
     default: false
   },
+  expired: {
+    type: Boolean, 
+    default: false
+  },
   blockNumber: Number,
   blockTimestamp: Date,
   transactionHash: {
