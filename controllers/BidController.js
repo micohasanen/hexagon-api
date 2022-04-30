@@ -41,7 +41,8 @@ exports.accept = async (data) => {
       contractAddress,
       tokenId: data.tokenId,
       userAddress,
-      nonce: data.nonce
+      nonce: data.nonce,
+      active: true
     }).session(session).exec()
     if (!bid) throw new Error('No Bid found')
 
