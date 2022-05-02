@@ -257,6 +257,14 @@ exports.refreshMetadata = async function (id) {
     await token.save()
 
     this.syncAuctions(token)
+    updateBalances({ 
+      chain: token.tokenCollection.chain,
+      tokenAddress: token.collectionId,
+      contractType: token.tokenCollection.contractType,
+      fromAddress: '0x0000000000000000000000000000000000000000',
+      toAddress: '0x0000000000000000000000000000000000000000',
+      tokenId: token.tokenId
+    })
 
     return Promise.resolve(token)
  } catch (error) {

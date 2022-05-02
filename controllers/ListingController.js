@@ -84,6 +84,7 @@ exports.accept = async (data) => {
     if (data.transactionHash) sale.transactionHash = data.transactionHash
     await sale.save()
 
+    
     NotificationController.addNotification({
       value: sale.value,
       notificationType: 'sale',
