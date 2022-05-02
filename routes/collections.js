@@ -21,6 +21,7 @@ const Auction = require("../models/Auction")
 // Controllers
 const TokenController = require("../controllers/TokenController")
 const TransferController = require("../controllers/TransferController")
+const CollectionController = require("../controllers/CollectionController")
 
 // Middleware
 const AdminOnly = require("../middleware/Auth_AdminOnly")
@@ -535,7 +536,21 @@ router.post('/', async (req, res) => {
     }
     await collection.save()
 
+    await CollectionController.sendAddedMail(collection.toObject())
+
     return res.status(200).send(collection)
+  } catch (error) {
+    console.error(error)
+    return res.status(500).json({ message: 'Something went wrong.', error })
+  }
+})
+
+router.post("/:address/resend-mail", [AdminOnly], async (req, res) => {
+  try {
+    const collection = await Collection.findOne({ address: req.params.address }).exec()
+    if (collection) await CollectionController.sendAddedMail(collection.toObject())
+
+    return res.status(200).json({ message: 'Mail sent successfully' })
   } catch (error) {
     console.error(error)
     return res.status(500).json({ message: 'Something went wrong.', error })

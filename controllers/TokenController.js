@@ -67,11 +67,13 @@ async function updateBalances (data) {
         }, { amount: balanceFrom }, createOptions)
       }
 
-      await Balance.updateOne({
-        address: data.toAddress,
-        tokenId: data.tokenId,
-        collectionId: data.tokenAddress
-      }, { amount: balanceTo }, createOptions)
+      if (!contractUtils.isZeroAddress(data.fromAddress)) {
+        await Balance.updateOne({
+          address: data.toAddress,
+          tokenId: data.tokenId,
+          collectionId: data.tokenAddress
+        }, { amount: balanceTo }, createOptions)
+      }
   }
 
   return Promise.resolve(owner)

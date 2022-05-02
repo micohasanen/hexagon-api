@@ -3,6 +3,8 @@ const Collection = require("../models/Collection")
 const Token = require("../models/Token")
 const Listing = require("../models/Listing")
 
+const SendMail = require("../utils/SendMail")
+
 exports.add = async (data) => {
   try {
     if (!data.address || !data.name) throw new Error('Missing required parameters.')
@@ -11,6 +13,7 @@ exports.add = async (data) => {
       collection[key] = val
     })
     await collection.save()
+
     return Promise.resolve(collection)
   } catch (error) {
     return Promise.reject(error)
@@ -166,3 +169,56 @@ exports.updatePrices = async (address) => {
     return Promise.reject(error)
   }
 } 
+
+exports.sendAddedMail = async (collection) => {
+  try {
+    const rejectKeys = [
+      'volume', 'sales', '_id', 'floorPrice', 'averagePrice',
+      'highestPrice', 'minPrice', "whitelisted", "pending", "__v",
+      'traits', 'excludeFromRarity', 'slug', 'categories'
+    ]
+
+    let mailHtml = '<table><tbody>'
+
+    Object.entries(collection).forEach(([key, value]) => {
+      let header = key
+      let content = value
+
+      if (rejectKeys.includes(key)) return
+
+      if (key === 'socials') {
+        for (const social of value) {
+          header = `Socials: ${social.name}`
+          content = social.href
+
+          mailHtml += `<tr><td>${header}</td><td>${content}</td></tr>`
+        }
+      }
+
+      if (key === 'socials') return
+
+      if (typeof value === 'object' && !Array.isArray(value) && value !== null) {
+        console.log(value)
+        Object.entries(value).forEach(([k, v]) => {
+          header = `${key}.${k}`
+          content = v
+
+          mailHtml += `<tr><td>${header}</td><td>${content}</td></tr>`
+        })
+      } else {
+        header = header[0].toUpperCase() + header.substring(1, header.length)
+        mailHtml += `<tr><td>${header}</td><td>${content}</td></tr>`
+      }
+  })
+
+  mailHtml += '</tbody></table>'
+  mailHtml += '<br><strong>Pro Tip:</strong> You can easily view images in IPFS by replacing ipfs:// with https://cdn.hive.investments/'
+
+  await SendMail({ to: 'team@hive.investments', subject: 'New collection posted to Hexagon', html: mailHtml})
+
+  } catch (error) {
+    console.error(error)
+    return Promise.reject(error.message)
+  }
+
+}
