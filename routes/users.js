@@ -1,6 +1,7 @@
 const router = require("express").Router()
 const parseDuration = require("parse-duration")
 const mongoose = require("mongoose")
+const { sanitizeUrl } = require("../utils/base")
 
 // Models
 const Balance = require("../models/Balance")
@@ -349,6 +350,12 @@ router.post('/me', [extractUser], async (req, res) => {
   try {
     if (!req.user?.address || !req.body) return res.status(400).json({ message: 'Missing required parameters.' })
     if (req.body.role) delete req.body.role
+
+    if (req.body.socials?.length) {
+      req.body.socials.forEach((social) => {
+        social.href = sanitizeUrl(social.href)
+      })
+    }
 
     const user = await User.findOneAndUpdate({ address: req.user.address }, { ...req.body }, { upsert: true, new: true })
 

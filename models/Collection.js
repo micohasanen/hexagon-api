@@ -1,5 +1,6 @@
 const mongoose = require("mongoose")
 const { generateRarity } = require("../queue/Queue")
+const { sanitizeUrl } = require("../utils/base")
 
 // ABIs
 const ABI_ERC721 = require("../abis/ERC721.json")
@@ -128,6 +129,12 @@ const CollectionSchema = mongoose.Schema({
 CollectionSchema.pre('save', async function (next) {
   this.address = this.address.toLowerCase()
 
+  if (this.socials?.length) {
+    this.socials.forEach((social) => {
+      social.href = sanitizeUrl(social.href)
+    })
+  }
+
   try {
     const { Provider } = GetProvider(this.chain)
     const code = await Provider.eth.getCode(this.address)
@@ -173,11 +180,13 @@ CollectionSchema.pre('save', async function (next) {
   }
 })
 
+/*
 CollectionSchema.post('save', function () {
   if (!this.traits?.length) {
     this.getAllTokens()
   }
 })
+*/
 
 CollectionSchema.methods.getAllTokens = async function () {
   try {
