@@ -70,9 +70,16 @@ const CollectionSchema = mongoose.Schema({
   },
   symbol: String,
   totalSupply: Number,
-  whitelisted: Boolean,
+  whitelisted: {
+    type: Boolean, 
+    index: true
+  },
   pending: Boolean,
   verified: Boolean,
+  featured: {
+    type: Boolean,
+    index: true
+  },
   socials: [{
     name: String,
     href: String
@@ -100,10 +107,10 @@ const CollectionSchema = mongoose.Schema({
   },
   volume: TotalingSchema,
   sales: TotalingSchema,
-  categories: [{
-    id: String,
-    name: String
-  }],
+  categories: {
+    type: [String],
+    index: true
+  },
   excludeFromRarity: [String],
   floorPrice: {
     type: Number,

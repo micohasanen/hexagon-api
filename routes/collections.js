@@ -55,10 +55,17 @@ router.get('/', async (req, res) => {
     if (isNaN(size) || size > 50) size = 50
     if (isNaN(page)) page = 0
 
-    const count = await Collection.countDocuments({ chain, whitelisted: true })
+    const settings = { chain, whitelisted: true }
+    if (req.query.filter?.includes('featured')) settings.featured = true
+    if (req.query.categories) {
+      const categories = req.query.categories.split(',')
+      settings.categories = { $in: categories } 
+    }
+
+    const count = await Collection.countDocuments(settings)
     const totalPageCount = Math.ceil(count / size) - 1
 
-    const collections = await Collection.find({ chain, whitelisted: true }).sort(sort).skip(page * size).limit(size).exec()
+    const collections = await Collection.find(settings).sort(sort).skip(page * size).limit(size).exec()
     return res.status(200).json({ 
       total: count, 
       page,
