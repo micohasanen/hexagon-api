@@ -33,11 +33,12 @@ function resolveIpfs (path) {
 }
 
 async function updateBalances (data) {
+  let owner = data.toAddress
+  
   try {
     const { Provider } = GetProvider(data.chain)
     const abi = data.contractType === 'ERC1155' ? ABI_ERC1155 : ABI_ERC721
     const contract = new Provider.eth.Contract(abi, data.tokenAddress)
-    let owner = data.toAddress
 
     // Get new balances of transfer parties
     if (data.contractType === 'ERC721') {
