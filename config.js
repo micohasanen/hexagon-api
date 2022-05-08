@@ -3,11 +3,11 @@ const redisConnection = {
   port: process.env.REDIS_PORT,
   username: process.env.REDIS_USER,
   password: process.env.REDIS_PASS,
-  connectTimeout: 10000,
   lazyConnect: true
 }
 
 if (process.env.NODE_ENV === 'production') redisConnection.tls = {}
+redisConnection.tls = {}
 
 module.exports = {
   redisConnection,

@@ -15,7 +15,10 @@ const TokenSchema = mongoose.Schema({
     trim: true
   },
   name: String,
-  image: String,
+  image: { 
+    type: String,
+    index: true
+  },
   imageHosted: String,
   description: String,
   metadata: {

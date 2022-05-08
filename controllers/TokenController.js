@@ -209,20 +209,32 @@ exports.refreshMetadata = async function (id) {
       if (fetched.data) {
         if (fetched.data.image?.startsWith('ipfs://')) token.imageHosted = fetched.data.image
         else {
-          let image
+          // First check if is duplicate with another image
+          const tokenWithSameImage = await Token.findOne({ 
+            collectionId: token.collectionId, 
+            image: fetched.data.image, 
+            imageHosted: { $exists: true }
+          })
 
-          if (fetched.data.image.startsWith('https://')) {
-            const imageReq = await axios.get(resolveIpfs(fetched.data.image), { responseType: 'arraybuffer' })
-            image = imageReq.data
+          // If exists, duplicate details, if not, upload to ipfs
+          if (tokenWithSameImage) {
+            token.imageHosted = tokenWithSameImage.imageHosted
           } else {
-            image = Buffer.from(fetched.data.image.split(',')[1], 'base64').toString('utf8')
-          }
+            let image
 
-          const buffer = Buffer.from(image)
-          const upload = new Moralis.File(`hexagon_${nanoid()}.jpg`, Array.from(buffer))
-          await upload.saveIPFS({ useMasterKey: true })
-          const hash = upload.hash()
-          token.imageHosted = `ipfs://${hash}`
+            if (fetched.data.image.startsWith('https://')) {
+              const imageReq = await axios.get(resolveIpfs(fetched.data.image), { responseType: 'arraybuffer' })
+              image = imageReq.data
+            } else {
+              image = Buffer.from(fetched.data.image.split(',')[1], 'base64').toString('utf8')
+            }
+  
+            const buffer = Buffer.from(image)
+            const upload = new Moralis.File(`hexagon_${nanoid()}.jpg`, Array.from(buffer))
+            await upload.saveIPFS({ useMasterKey: true })
+            const hash = upload.hash()
+            token.imageHosted = `ipfs://${hash}`
+          }
         }
 
         token.metadata = fetched.data
