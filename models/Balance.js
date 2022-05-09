@@ -22,7 +22,8 @@ const BalanceSchema = mongoose.Schema({
   },
   amount: {
     type: Number,
-    default: 0
+    default: 0,
+    index: true
   }
 }, { timestamps: true })
 

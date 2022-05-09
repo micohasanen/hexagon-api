@@ -14,12 +14,18 @@ const TokenSchema = mongoose.Schema({
     lowercase: true,
     trim: true
   },
-  name: String,
+  name: {
+    type: String, 
+    index: true
+  },
   image: { 
     type: String,
     index: true
   },
-  imageHosted: String,
+  imageHosted: {
+    type: String, 
+    index: true
+  },
   description: String,
   metadata: {
     type: mongoose.Schema.Types.Mixed,
