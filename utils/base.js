@@ -1,4 +1,5 @@
 const sanitize = require("@braintree/sanitize-url").sanitizeUrl
+const web3 = require("web3")
 
 exports.isExpired = (timestamp) => {
   const expiry = new Date(timestamp).getTime()
@@ -11,4 +12,10 @@ exports.isExpired = (timestamp) => {
 exports.sanitizeUrl = (url) => {
   if (!url) return ''
   return sanitize(url)
+}
+
+exports.toTwosComplement = (id) => {
+  const str = web3.utils.toTwosComplement(id)
+
+  return str.replace('0x', '')
 }

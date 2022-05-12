@@ -18,6 +18,7 @@ const Balance = require("../models/Balance")
 const GetProvider = require("../utils/ChainProvider")
 
 const contractUtils = require("../utils/contractType")
+const { toTwosComplement } = require("../utils/base")
 
 const knownGateways = ['https://gateway.pinata.cloud/ipfs/', 'https://gateway.ipfs.io/ipfs/', 'https://gateway.moralisipfs.com/ipfs/']
 
@@ -56,7 +57,8 @@ async function updateBalances (data) {
       if (!contractUtils.isZeroAddress(data.fromAddress))
         balanceFrom = await contract.methods.balanceOf(data.fromAddress, data.tokenId).call()
 
-      balanceTo = await contract.methods.balanceOf(data.toAddress, data.tokenId).call()
+      if (!contractUtils.isZeroAddress(data.toAddress))
+        balanceTo = await contract.methods.balanceOf(data.toAddress, data.tokenId).call()
 
       const createOptions = { upsert: true }
 
@@ -68,7 +70,7 @@ async function updateBalances (data) {
         }, { amount: balanceFrom }, createOptions)
       }
 
-      if (!contractUtils.isZeroAddress(data.fromAddress)) {
+      if (!contractUtils.isZeroAddress(data.toAddress)) {
         await Balance.updateOne({
           address: data.toAddress,
           tokenId: data.tokenId,
@@ -188,6 +190,10 @@ exports.refreshMetadata = async function (id) {
     } else if (token.contractType === 'ERC1155') {
       const contract = new Provider.eth.Contract(ABI_ERC1155, token.collectionId)
       tokenUri = await contract.methods.uri(token.tokenId).call()
+
+      if (tokenUri.includes('{id}')) {
+        tokenUri = tokenUri.replace('{id}', toTwosComplement(token.tokenId))
+      }
       console.log("ERC1155 Token URI", tokenUri)
     }
 
