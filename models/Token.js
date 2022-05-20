@@ -92,7 +92,8 @@ const TokenSchema = mongoose.Schema({
     type: String,
     unique: true,
     index: true
-  }
+  },
+  chain: String
 }, { timestamps: true, toObject: { virtuals: true }, toJSON: { virtuals: true } })
 
 TokenSchema.pre('save', function (next) {

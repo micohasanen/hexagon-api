@@ -94,8 +94,7 @@ router.get("/:address/tokens", async (req, res) => {
       amount: { $gt: 0 }
     }
 
-    const session = await mongoose.startSession()
-    session.startTransaction()
+    // if (chain && chain !== 'all') query.chain = chain
 
     const total = await Balance.countDocuments(query)
     const totalPageCount = Math.ceil(total / size) - 1
@@ -103,13 +102,12 @@ router.get("/:address/tokens", async (req, res) => {
     const balances = await Balance.find(query)
     .skip(page * size)
     .limit(size)
-    .session(session)
     .exec()
 
     const auctionedItems = await Auction.find({
       owner: req.params.address,
       active: true
-    }).session(session)
+    })
 
     const results = []
     for (const balance of balances) {
@@ -118,7 +116,6 @@ router.get("/:address/tokens", async (req, res) => {
                           .populate('bids')
                           .populate('transfers')
                           .select('-traits -metadata')
-                          .session(session)
                           .exec()
       results.push(token)
     }
@@ -128,13 +125,10 @@ router.get("/:address/tokens", async (req, res) => {
       const token = await Token.findOne({ collectionId: item.collectionAddress, tokenId: item.tokenId })
       .select('-traits -metadata')
       .populate('auctions')
-      .session(session)
       .exec()
 
       auctioned.push(token)
     }
-
-    session.endSession()
 
     return res.status(200).json({ 
       total, 
@@ -147,6 +141,33 @@ router.get("/:address/tokens", async (req, res) => {
       auctioned
     })
 
+  } catch (error) {
+    return res.status(500).json({ message: 'Something went wrong.', error })
+  }
+})
+
+router.get("/:address/tokens/auctioned", async (req, res) => {
+  try {
+    if (!req.params.address) return res.status(400).json({ message: 'Address required.' })
+
+    const auctionedItems = await Auction.find({
+      owner: req.params.address,
+      active: true
+    })
+
+    const auctioned = []
+    for (const item of auctionedItems) {
+      const token = await Token.findOne({ collectionId: item.collectionAddress, tokenId: item.tokenId })
+      .select('-traits -metadata')
+      .populate('auctions')
+      .exec()
+
+      auctioned.push(token)
+    }
+
+    return res.status(200).json({
+      results: auctioned
+    })
   } catch (error) {
     return res.status(500).json({ message: 'Something went wrong.', error })
   }

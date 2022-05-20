@@ -55,7 +55,10 @@ router.get('/', async (req, res) => {
     if (isNaN(size) || size > 50) size = 50
     if (isNaN(page)) page = 0
 
-    const settings = { chain, whitelisted: true }
+    const settings = { whitelisted: true }
+    if (chain !== 'all') settings.chain = chain
+    else settings.chain = { $nin: config.chains.testnet }
+
     if (req.query.filter?.includes('featured')) settings.featured = true
     if (req.query.categories) {
       const categories = req.query.categories.split(',')

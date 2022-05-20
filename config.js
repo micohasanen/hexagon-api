@@ -23,5 +23,9 @@ module.exports = {
       user: process.env.SMTP_USER,
       pass: process.env.SMTP_PASS
     }
+  },
+  chains: {
+    mainnet: ['polygon', 'eth', 'avalanche'],
+    testnet: ['mumbai']
   }
 }

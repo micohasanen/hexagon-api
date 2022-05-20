@@ -15,6 +15,10 @@ const BalanceSchema = mongoose.Schema({
     trim: true,
     index: true
   },
+  chain: {
+    type: String,
+    index: true
+  },
   tokenId: {
     type: Number,
     required: true,

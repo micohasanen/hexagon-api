@@ -47,7 +47,8 @@ async function updateBalances (data) {
 
       await Balance.updateOne({ 
         tokenId: data.tokenId, 
-        collectionId: data.tokenAddress
+        collectionId: data.tokenAddress,
+        chain: data.chain
       }, { address: owner, amount: 1 }, { upsert: true })
 
     } else if (data.contractType === 'ERC1155') {
@@ -66,7 +67,8 @@ async function updateBalances (data) {
         await Balance.updateOne({
           address: data.fromAddress,
           tokenId: data.tokenId,
-          collectionId: data.tokenAddress
+          collectionId: data.tokenAddress,
+          chain: data.chain
         }, { amount: balanceFrom }, createOptions)
       }
 
@@ -74,7 +76,8 @@ async function updateBalances (data) {
         await Balance.updateOne({
           address: data.toAddress,
           tokenId: data.tokenId,
-          collectionId: data.tokenAddress
+          collectionId: data.tokenAddress,
+          chain: data.chain
         }, { amount: balanceTo }, createOptions)
       }
   }
@@ -191,6 +194,8 @@ exports.refreshMetadata = async function (id) {
       const contract = new Provider.eth.Contract(ABI_ERC1155, token.collectionId)
       tokenUri = await contract.methods.uri(token.tokenId).call()
 
+      console.log(tokenUri)
+
       if (tokenUri.includes('{id}')) {
         tokenUri = tokenUri.replace('{id}', toTwosComplement(token.tokenId))
       }
@@ -275,6 +280,7 @@ exports.refreshMetadata = async function (id) {
       }
     }
 
+    if (!token.chain) token.chain = token.tokenCollection.chain
     await token.save()
 
     this.syncAuctions(token)
