@@ -13,7 +13,10 @@ module.exports = {
   redisConnection,
   marketplaces: {
     '80001': process.env.MARKETPLACE_MUMBAI, 
-    '137': process.env.MARKETPLACE_POLYGON
+    '137': process.env.MARKETPLACE_POLYGON,
+    '1': process.env.MARKETPLACE_ETH,
+    '43114': process.env.MARKETPLACE_AVAX,
+    '56': process.env.MARKETPLACE_BSC
   },
   smtp: {
     host: 'smtp-relay.sendinblue.com',
@@ -25,7 +28,7 @@ module.exports = {
     }
   },
   chains: {
-    mainnet: ['polygon', 'eth', 'avalanche'],
+    mainnet: ['polygon', 'eth', 'avalanche', 'bsc'],
     testnet: ['mumbai']
   }
 }

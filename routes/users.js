@@ -110,6 +110,7 @@ router.get("/:address/tokens", async (req, res) => {
     })
 
     const results = []
+    console.log(balances)
     for (const balance of balances) {
       const token = await Token.findOne({ collectionId: balance.collectionId, tokenId: balance.tokenId })
                           .populate('listings')

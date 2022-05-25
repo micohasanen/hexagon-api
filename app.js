@@ -1,6 +1,5 @@
 require("dotenv").config()
 const PORT = process.env.PORT || 5000
-const config = require("./config")
 
 const express = require("express")
 const cors = require("cors")
@@ -31,11 +30,14 @@ app.get("/", (req, res) => {
   return res.send('Hive API')
 })
 
+
 app.use('/healthcheck', require("./routes/healthcheck"))
+
 app.use('/collections', require("./routes/collections"))
 app.use('/c', require("./routes/collections"))
 app.use('/tokens', require("./routes/tokens"))
 app.use('/t', require("./routes/tokens"))
+
 app.use('/auth', require("./routes/auth"))
 app.use('/listings', require("./routes/listings"))
 app.use('/bids', require("./routes/bids"))
@@ -43,6 +45,7 @@ app.use('/users', require("./routes/users"))
 app.use('/auctions', require("./routes/auctions"))
 app.use('/notifications', require("./routes/notifications"))
 app.use('/uploads', require("./routes/uploads"))
+
 
 // If all else fails
 app.use(function(req, res, next) {
@@ -58,7 +61,7 @@ app.use(function(err, req, res) {
   res.sendStatus(err || 500);
 });
 
-app.listen(PORT, () => {
+app.listen(PORT, async () => {
   // Setup Queue Workers
   require("./queue/Worker")()
 

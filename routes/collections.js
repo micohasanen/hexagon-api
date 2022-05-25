@@ -639,7 +639,7 @@ router.post("/:address/sync-transfers", [AdminOnly], async (req, res) => {
   return res.status(200).json({ message: 'Syncing started.' })
 })
 
-router.post("/:address/clear-duplicates", [AdminOnly], async (req, res) => {
+router.post("/:address/clear-duplicates", async (req, res) => {
   TokenController.removeDuplicates(req.params.address)
   return res.status(200).json({ message: 'Process started.' })
 })

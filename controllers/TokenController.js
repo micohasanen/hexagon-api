@@ -19,7 +19,6 @@ const GetProvider = require("../utils/ChainProvider")
 
 const contractUtils = require("../utils/contractType")
 const { toTwosComplement } = require("../utils/base")
-
 const knownGateways = ['https://gateway.pinata.cloud/ipfs/', 'https://gateway.ipfs.io/ipfs/', 'https://gateway.moralisipfs.com/ipfs/']
 
 function resolveIpfs (path) {
@@ -356,12 +355,8 @@ exports.logListing = async (data) => {
   try {
     if (!data._id) throw new Error('Listing _id must be specified')
 
-    const session = await mongoose.startSession()
-    session.startTransaction()
-
     const token = await Token.findOne({ collectionId: data.collectionId, tokenId: data.tokenId })
                       .populate('listings')
-                      .session(session)
                       .exec()
     if (!token) throw new Error('No token found')
 
@@ -384,9 +379,6 @@ exports.logListing = async (data) => {
 
     token.markModified('listings')
     await token.save()
-
-    await session.commitTransaction()
-    session.endSession()
 
     updateCollectionPrices(data.collectionId)
 

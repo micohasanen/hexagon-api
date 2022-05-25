@@ -222,3 +222,24 @@ exports.sendAddedMail = async (collection) => {
   }
 
 }
+
+/*
+exports.syncChain = async () => {
+  try {
+    const collections = await Collection.find().skip(1)
+    
+    for (const collection of collections) {
+      for await (const token of Token.find({ collectionId: collection.address })) {
+        console.log({ address: collection.address, tokenId: token.tokenId })
+        token.chain = collection.chain
+        token.save()
+      }
+    }
+
+    return Promise.resolve(true)
+  } catch (error) {
+    console.error(error)
+    return Promise.reject(error.message)
+  }
+}
+*/
