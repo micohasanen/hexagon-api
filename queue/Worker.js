@@ -26,6 +26,7 @@ module.exports = () => {
   // Process new Metadata refresh request
   const metadataWorker = new Worker('metadata',
   async (job) => {
+    //
     //await TokenController.refreshMetadata(job.data)
      TokenController.refreshMetadata(job.data)
     return true
