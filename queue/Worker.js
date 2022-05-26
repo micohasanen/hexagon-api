@@ -11,12 +11,12 @@ const AuctionController = require("../controllers/AuctionController")
 
 module.exports = () => {
   // Process a new transfer Event
-  const transferWorker = new Worker('transfers', 
+  const transferWorker = new Worker('transfers',
     async (job) => {
       await TransferController.add(job.data)
       return true
-    }, { 
-      connection: config.redisConnection, 
+    }, {
+      connection: config.redisConnection,
       limiter: {
         max: 7,
         duration: 1000
@@ -24,11 +24,12 @@ module.exports = () => {
     })
 
   // Process new Metadata refresh request
-  const metadataWorker = new Worker('metadata', 
+  const metadataWorker = new Worker('metadata',
   async (job) => {
-    await TokenController.refreshMetadata(job.data)
+    //await TokenController.refreshMetadata(job.data)
+     TokenController.refreshMetadata(job.data)
     return true
-  }, { 
+  }, {
     connection: config.redisConnection,
     limiter: {
       max: 10,
@@ -36,14 +37,14 @@ module.exports = () => {
     }
   })
 
-  // Process new batch reveal 
-  const rarityWorker = new Worker('rarity', 
+  // Process new batch reveal
+  const rarityWorker = new Worker('rarity',
   async (job) => {
     await CollectionController.generateRarity(job.data)
     return true
   }, { connection: config.redisConnection })
 
-  // Events from Marketplace 
+  // Events from Marketplace
   // Listings
   const listingWorker = new Worker('listings', async (job) => {
     if (job.data.eventType === 'accepted') {
