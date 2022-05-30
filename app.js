@@ -47,8 +47,6 @@ app.use('/auctions', require("./routes/auctions"))
 app.use('/notifications', require("./routes/notifications"))
 app.use('/uploads', require("./routes/uploads"))
 
-app.use('/tokenlikes', require("./routes/tokenlikes"))
-
 // If all else fails
 app.use(function (req, res, next)
 {
