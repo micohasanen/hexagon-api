@@ -45,6 +45,47 @@ router.get('/all/whitelisted', async (req, res) => {
   }
 })
 
+// Admin Routes
+router.get('/rejected', async (req, res) => {
+  const collections = await Collection.find({
+    whitelisted: false,
+    rejected: true,
+  }).sort('-createdAt');
+  return res.status(200).json({results: collections});
+});
+
+router.get('/pending', async (req, res) => {
+  const collections = await Collection.find({
+    pending: true,
+    whitelisted: false,
+  }).sort('-createdAt');
+  return res.status(200).json({results: collections});
+});
+
+router.put('/:address/reject', [AdminOnly], async (req, res) => {
+  try {
+    const collection = await Collection.findOneAndUpdate({
+      address: req.params.address,
+    }, {
+      whitelisted: false,
+      pending: false,
+      rejected: true,
+    });
+
+    return res.status(200).json({collection});
+  } catch (error) {
+    res.status(500).json({code: 500, message: 'Something went wrong.'});
+  }
+});
+
+router.put('/:address/approve', [AdminOnly], async (req, res) => {
+  try {
+
+  } catch (error) {
+    res.status(500).json({code: 500, message: 'Something went wrong.'});
+  }
+})
+
 router.get('/', async (req, res) => {
   try {
     let page = parseInt(req.query.page || 0)
@@ -116,6 +157,7 @@ router.get('/search', async (req, res) => {
   }
 })
 
+// Address routes
 router.get('/:address', async (req, res) => {
   try {
     const collection = await Collection.findOne({ address: req.params.address })

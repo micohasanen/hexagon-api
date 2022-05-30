@@ -61,9 +61,14 @@ app.use(function(err, req, res) {
   res.sendStatus(err || 500);
 });
 
+const Collection = require("./models/Collection")
+
 app.listen(PORT, async () => {
   // Setup Queue Workers
   require("./queue/Worker")()
 
   console.log(`Hive API listening on port ${PORT}`)
+
+  const coll = await Collection.findOne({ address: '0x76daaaf7711f0dc2a34bca5e13796b7c5d862b53'})
+  await coll.save()
 })

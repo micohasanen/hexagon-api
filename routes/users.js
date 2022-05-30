@@ -56,7 +56,7 @@ router.get("/search", async (req, res) => {
 
 router.get('/:address', async (req, res) => {
   try {
-    const user = await User.findOne({ address: req.params.address }).select('-role').exec()
+    const user = await User.findOne({ address: req.params.address }).exec()
     if (!user) return res.status(404).json({ message: 'No user found.' })
 
     const balances = await Balance.aggregate([

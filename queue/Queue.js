@@ -35,7 +35,7 @@ exports.addTransfer = async (data) => {
 }
 
 exports.addMetadata = async (tokenIdMongo) => {
-  await metadataQueue.add(nanoid(), tokenIdMongo)
+ await metadataQueue.add(nanoid(), tokenIdMongo)
 }
 
 exports.generateRarity = async (collectionAddress) => {
@@ -60,5 +60,5 @@ exports.expireAuction = async (id, expiry) => {
 }
 
 exports.updateCollectionPrices = async (address) => {
-  await priceQueue.add(nanoid(), { address })
+ await priceQueue.add(nanoid(), { address })
 }

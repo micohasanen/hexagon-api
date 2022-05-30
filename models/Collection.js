@@ -1,5 +1,4 @@
 const mongoose = require("mongoose")
-const { generateRarity } = require("../queue/Queue")
 const { sanitizeUrl } = require("../utils/base")
 
 // ABIs
@@ -75,6 +74,7 @@ const CollectionSchema = mongoose.Schema({
     index: true
   },
   pending: Boolean,
+  rejected: Boolean,
   verified: Boolean,
   featured: {
     type: Boolean,
