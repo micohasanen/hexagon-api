@@ -26,7 +26,8 @@ app.use(fileupload({
 mongoose.connect(
   `mongodb+srv://${process.env.MONGO_USER}:${process.env.MONGO_PASS}@${process.env.MONGO_URL}/${process.env.MONGO_DB_NAME}?retryWrites=true&w=majority`)
 
-app.get("/", (req, res) => {
+app.get("/", (req, res) =>
+{
   return res.send('Hive API')
 })
 
@@ -46,14 +47,17 @@ app.use('/auctions', require("./routes/auctions"))
 app.use('/notifications', require("./routes/notifications"))
 app.use('/uploads', require("./routes/uploads"))
 
+app.use('/tokenlikes', require("./routes/tokenlikes"))
 
 // If all else fails
-app.use(function(req, res, next) {
+app.use(function (req, res, next)
+{
   next(404);
 });
 
 // error handler
-app.use(function(err, req, res) {
+app.use(function (err, req, res)
+{
   // set locals, only providing error in development
   res.locals.message = err.message;
   res.locals.error = req.app.get('env') === 'development' ? err : {};
@@ -61,7 +65,8 @@ app.use(function(err, req, res) {
   res.sendStatus(err || 500);
 });
 
-app.listen(PORT, async () => {
+app.listen(PORT, async () =>
+{
   // Setup Queue Workers
   require("./queue/Worker")()
 
