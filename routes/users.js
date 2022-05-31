@@ -378,11 +378,8 @@ router.get('/:address/likes', async (req, res) => {
 
     let userAddress = req.params.address
     const userLikes = await TokenLike.find({ userAddress: userAddress }).exec()
-    if (userLikes.length == 0) {
-      res.status(200).json({ message: 'No Likes for this user', result: [] })
-    } else {
-      res.status(200).json({ message: 'There are some likes for this user', result: userLikes })
-    }
+    res.status(200).json({ results: userLikes })
+
 
   } catch (error) {
     return res.status(500).json({ message: 'Something went wrong.', error })

@@ -11,12 +11,10 @@ const TokenLikeSchema = mongoose.Schema({
         trim: true
     },
     collectionId: {
-        type: Number,
+        type: String,
         required: true,
         unique: false,
-        index: true,
-        lowercase: false,
-        trim: false
+        index: true
     },
     tokenId: {
         type: Number,

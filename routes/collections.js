@@ -28,6 +28,10 @@ const CollectionController = require("../controllers/CollectionController")
 const AdminOnly = require("../middleware/Auth_AdminOnly")
 const OnlyOwner = require("../middleware/Auth_OwnerOnly")
 
+const { body, validationResult } = require("express-validator")
+const { extractUser } = require("../middleware/VerifySignature")
+
+
 router.get('/all', async (req, res) => {
   try {
     const collections = await Collection.find()
@@ -545,11 +549,10 @@ router.get('/:collectionId/tokens/:tokenId/likes', async (req, res) => {
     let collectionId = req.params.collectionId
     let tokenId = req.params.tokenId
     const tokenLikes = await TokenLike.find({ collectionId: collectionId, tokenId: tokenId }).exec()
-    if (tokenLikes.length == 0) {
-      res.status(200).json({ message: 'No Likes for this token', tokenLikes })
-    } else {
-      res.status(200).json({ message: 'There are some likes for this token', tokenLikes })
-    }
+
+    res.status(200).json({ results: tokenLikes, count: tokenLikes.length })
+
+
 
   } catch (error) {
     return res.status(500).json({ message: 'Something went wrong.', error })
@@ -557,8 +560,6 @@ router.get('/:collectionId/tokens/:tokenId/likes', async (req, res) => {
 
 })
 
-const { body, validationResult } = require("express-validator")
-const { extractUser } = require("../middleware/VerifySignature")
 
 router.post('/likes', [
   body('collectionId').exists().notEmpty().isString(),
