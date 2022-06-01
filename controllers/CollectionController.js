@@ -3,6 +3,8 @@ const Collection = require("../models/Collection")
 const Token = require("../models/Token")
 const Listing = require("../models/Listing")
 
+const { Moralis } = require("../utils/Moralis")
+const TokenController = require("../controllers/TokenController")
 const SendMail = require("../utils/SendMail")
 
 exports.add = async (data) => {
@@ -15,6 +17,59 @@ exports.add = async (data) => {
     await collection.save()
 
     return Promise.resolve(collection)
+  } catch (error) {
+    return Promise.reject(error)
+  }
+}
+
+exports.syncTokens = async (collection) => {
+  try {
+    const { address, chain } = collection
+    let total = 1
+    const batchSize = 500
+    let processed = 0
+    let contractType = ''
+
+    let cursor = ''
+
+    for (let i = 0; i < Math.ceil(total / batchSize); i++) {
+      const settings = {
+        address,
+        chain
+      }
+      if (cursor) settings.cursor = cursor
+
+      const tokenData = await Moralis.Web3API.token.getAllTokenIds(settings)
+
+      total = parseInt(tokenData.total)
+      cursor = tokenData.cursor
+
+      if (!total) return
+      console.log({ address, total, i })
+
+      for (const token of tokenData.result) {
+        const tempToken = {
+          collectionId: address,
+          tokenId: token.token_id,
+          tokenUri: token.token_uri,
+          contractType: token.contract_type,
+          metadata: JSON.parse(token.metadata)
+        }
+
+        contractType = token.contractType
+
+        TokenController.add(tempToken)
+        processed += 1
+        if (processed === total) {
+          totalSupply = total
+          if (!collection.contractType) collection.contractType = contractType
+
+          await collection.save()
+
+          return Promise.resolve(true)
+        }
+      }
+    }
   } catch (error) {
     return Promise.reject(error)
   }

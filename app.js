@@ -63,10 +63,9 @@ app.use(function (err, req, res)
   res.sendStatus(err || 500);
 });
 
-app.listen(PORT, async () =>
-{
+app.listen(PORT, async () => {
   // Setup Queue Workers
   require("./queue/Worker")()
 
-  console.log(`Hive API listening on port ${PORT}`)
+  console.log(`Hexagon API listening on port ${PORT}`)
 })
