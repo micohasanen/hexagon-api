@@ -17,6 +17,7 @@ const Sale = require("../models/Sale")
 const Balance = require("../models/Balance")
 const Transfer = require("../models/Transfer")
 const Auction = require("../models/Auction")
+const TokenLike = require("../models/TokenLike")
 
 // Controllers
 const TokenController = require("../controllers/TokenController")
@@ -26,6 +27,10 @@ const CollectionController = require("../controllers/CollectionController")
 // Middleware
 const AdminOnly = require("../middleware/Auth_AdminOnly")
 const OnlyOwner = require("../middleware/Auth_OwnerOnly")
+
+const { body, validationResult } = require("express-validator")
+const { extractUser } = require("../middleware/VerifySignature")
+
 
 router.get('/all', async (req, res) => {
   try {
@@ -143,21 +148,21 @@ router.get('/', async (req, res) => {
     if (req.query.filter?.includes('featured')) settings.featured = true
     if (req.query.categories) {
       const categories = req.query.categories.split(',')
-      settings.categories = { $in: categories } 
+      settings.categories = { $in: categories }
     }
 
     const count = await Collection.countDocuments(settings)
     const totalPageCount = Math.ceil(count / size) - 1
 
     const collections = await Collection.find(settings).sort(sort).skip(page * size).limit(size).exec()
-    return res.status(200).json({ 
-      total: count, 
+    return res.status(200).json({
+      total: count,
       page,
       size,
       previousPage: page === 0 ? null : page - 1,
       nextPage: page + 1 < totalPageCount ? page + 1 : null,
       totalPageCount,
-      results: collections 
+      results: collections
     })
   } catch (error) {
     return res.status(500).json({ message: 'Something went wrong.', error })
@@ -166,32 +171,32 @@ router.get('/', async (req, res) => {
 
 router.get('/search', async (req, res) => {
   try {
-      if (!req.query.q) return res.status(200).json({ total: 0, results: [] })
+    if (!req.query.q) return res.status(200).json({ total: 0, results: [] })
 
-      const addressMatch = await Collection.findOne({ address: req.query.q, whitelisted: true })
-      if (addressMatch) return res.status(200).json({ total: 1, results: [ addressMatch ]})
+    const addressMatch = await Collection.findOne({ address: req.query.q, whitelisted: true })
+    if (addressMatch) return res.status(200).json({ total: 1, results: [addressMatch] })
 
-      let collections = []
+    let collections = []
 
-      collections = await Collection.aggregate([
-        { $match: { $text: { $search: decodeURIComponent(req.query.q) } } },
-        { $match: { whitelisted: true } },
-        { $sort: { score: { $meta: "textScore" } } },
-        { $unset: 'traits' },
-        { $limit: 10 }
-      ])
+    collections = await Collection.aggregate([
+      { $match: { $text: { $search: decodeURIComponent(req.query.q) } } },
+      { $match: { whitelisted: true } },
+      { $sort: { score: { $meta: "textScore" } } },
+      { $unset: 'traits' },
+      { $limit: 10 }
+    ])
 
-      // Perform a partial text search if nothing was found
-      if (!collections.length) { 
-        collections = await Collection.find({
-          $or: [
-            { "name": new RegExp(decodeURIComponent(req.query.q), "gi") }
-          ],
-          whitelisted: true
-        }).select("-traits")
-      }
+    // Perform a partial text search if nothing was found
+    if (!collections.length) {
+      collections = await Collection.find({
+        $or: [
+          { "name": new RegExp(decodeURIComponent(req.query.q), "gi") }
+        ],
+        whitelisted: true
+      }).select("-traits")
+    }
 
-      return res.status(200).json({ total: collections.length, results: collections })
+    return res.status(200).json({ total: collections.length, results: collections })
   } catch (error) {
     return res.status(500).json({ message: 'Something went wrong.', error })
   }
@@ -204,20 +209,22 @@ router.get('/:address', async (req, res) => {
     if (!collection) return res.status(404).json({ message: 'No collection found.' })
 
     let prices = await Listing.aggregate([
-      { $match: { contractAddress: req.params.address, active: true }},
-      { $group: { 
-        _id: "$collectionId", 
-        floorPrice: { $min: "$pricePerItem" },
-        averagePrice: { $avg: "$pricePerItem" },
-        highestPrice: { $max: "$pricePerItem" }
-      }}
+      { $match: { contractAddress: req.params.address, active: true } },
+      {
+        $group: {
+          _id: "$collectionId",
+          floorPrice: { $min: "$pricePerItem" },
+          averagePrice: { $avg: "$pricePerItem" },
+          highestPrice: { $max: "$pricePerItem" }
+        }
+      }
     ])
-    
+
     if (prices.length)
       delete prices[0]._id
     else prices = [{ floorPrice: 0, averagePrice: 0, highestPrice: 0 }]
 
-    const owners = await Balance.distinct('address', { 
+    const owners = await Balance.distinct('address', {
       collectionId: req.params.address,
       amount: { $gt: 0 }
     })
@@ -270,7 +277,7 @@ router.post('/:address/tokens', async (req, res) => {
   if (sort === 'lowestPrice') findQuery.lowestPrice = { $exists: true, $gt: 0 }
   else if (sort === '-highestPrice') findQuery.lowestPrice = { $exists: true, $gt: 0 }
   else if (sort === 'highestBid') findQuery.highestBid = { $exists: true, $gt: 0 }
-  else if (sort === "lastSoldAt") findQuery.lastSoldAt =  { $exists: true }
+  else if (sort === "lastSoldAt") findQuery.lastSoldAt = { $exists: true }
 
   // Price filtering
   if (priceFrom) {
@@ -288,10 +295,10 @@ router.post('/:address/tokens', async (req, res) => {
   // Rarity filtering
   if (rarityFrom || rarityTo) {
     if (!findQuery.rarity) findQuery.rarity = { $exists: true }
-    if (rarityFrom) { 
-      findQuery.rarity.$gte = rarityFrom 
+    if (rarityFrom) {
+      findQuery.rarity.$gte = rarityFrom
     }
-    if (rarityTo) findQuery.rarity.$lte = rarityTo 
+    if (rarityTo) findQuery.rarity.$lte = rarityTo
   } else if (rarityRankFrom || rarityRankTo) {
     if (!findQuery.rarityRank) findQuery.rarityRank = { $exists: true }
     if (rarityRankFrom) {
@@ -303,13 +310,13 @@ router.post('/:address/tokens', async (req, res) => {
   // Filters
   if (filter.includes('auctions')) {
     findQuery.auctions = { $exists: true, $type: 'array', $ne: [] }
-  } 
+  }
   if (filter.includes('listed') && filter !== 'unlisted') {
     findQuery.lowestPrice = { $exists: true, $gt: 0 }
-  } 
+  }
   if (filter.includes('has-bids')) {
     findQuery.highestBid = { $exists: true, $gt: 0 }
-  } 
+  }
   if (filter.includes('unlisted')) {
     findQuery.lowestPrice = { $eq: 0 }
   }
@@ -318,7 +325,7 @@ router.post('/:address/tokens', async (req, res) => {
   let totalPageCount = Math.ceil(count / size) - 1
 
   let tokens = []
-  
+
   if (count) {
     tokens = await Token
       .find(findQuery)
@@ -335,8 +342,8 @@ router.post('/:address/tokens', async (req, res) => {
   const sorts = ['lowestPrice', '-highestPrice', 'highestBid']
 
   if (
-    keys.length === 2 && 
-    !filter.length && 
+    keys.length === 2 &&
+    !filter.length &&
     sorts.includes(sort) &&
     totalPageCount <= page
   ) {
@@ -348,33 +355,34 @@ router.post('/:address/tokens', async (req, res) => {
 
     count = await Token.countDocuments(q)
     const additionalTokens = await Token
-                            .find(q)
-                            .limit(size - tokens.length)
-                            .skip(page * size)
-                            .sort('tokenId')
-                            .populate('auctions')
-                            .select('-traits -metadata')
-                            .exec()
+      .find(q)
+      .limit(size - tokens.length)
+      .skip(page * size)
+      .sort('tokenId')
+      .populate('auctions')
+      .select('-traits -metadata')
+      .exec()
 
     tokens = [...tokens, ...additionalTokens]
   }
 
   totalPageCount = Math.ceil(count / size) - 1
 
-  return res.status(200).json({ 
-    total: count, 
-    page, 
+  return res.status(200).json({
+    total: count,
+    page,
     size,
     previousPage: page === 0 ? null : page - 1,
     nextPage: page === totalPageCount ? null : page + 1,
     totalPageCount,
-    results: tokens })
+    results: tokens
+  })
 })
 
 router.get('/:address/tokens/snippet', async (req, res) => {
   try {
     const size = Number(req.query.size) || 5
-    const fields = req.query.fields?.split(',') || [ 'name', 'tokenId', 'collectionId', 'imageHosted' ]
+    const fields = req.query.fields?.split(',') || ['name', 'tokenId', 'collectionId', 'imageHosted']
 
     const include = {}
     fields.forEach((field) => {
@@ -407,11 +415,11 @@ router.get('/:address/token/:tokenId', async (req, res) => {
   try {
     if (!req.params?.address || !req.params.tokenId) return res.status(400).json({ message: 'Missing required url parameters.' })
     const token = await Token.findOne({ collectionId: req.params.address, tokenId: req.params.tokenId })
-                        .populate('listings')
-                        .populate('bids')
-                        .populate('transfers')
-                        .populate('auctions')
-                        .exec()
+      .populate('listings')
+      .populate('bids')
+      .populate('transfers')
+      .populate('auctions')
+      .exec()
     if (!token) return res.status(404).json({ message: 'No token found.' })
 
     return res.status(200).send(token)
@@ -611,6 +619,61 @@ router.get('/:address/sales', async (req, res) => {
   const totalSales = sales.length
 
   return res.status(200).json({ volume, totalSales, results: sales })
+})
+
+router.get('/:collectionId/tokens/:tokenId/likes', async (req, res) => {
+
+  try {
+
+    if (!req.params.collectionId) return res.status(400).json({ message: 'Missing Collection ID Parameter..' })
+    if (!req.params.tokenId) return res.status(400).json({ message: 'Missing TokenID Parameter..' })
+
+    let collectionId = req.params.collectionId
+    let tokenId = req.params.tokenId
+    const tokenLikes = await TokenLike.find({ collectionId: collectionId, tokenId: tokenId }).exec()
+
+    res.status(200).json({ results: tokenLikes, count: tokenLikes.length })
+
+
+
+  } catch (error) {
+    return res.status(500).json({ message: 'Something went wrong.', error })
+  }
+
+})
+
+
+router.post('/likes', [
+  body('collectionId').exists().notEmpty().isString(),
+  body('tokenId').exists().notEmpty().custom(value => !isNaN(value)),
+  extractUser
+], async (req, res) => {
+
+
+  try {
+    if (!validationResult(req).isEmpty()) {
+      return res.status(400).json({ message: 'Validation failed.', error: validationResult(req).array() })
+    }
+
+    const data = { collectionId, tokenId } = req.body
+    data.userAddress = req.user.address
+
+    let like = await TokenLike.exists(data)
+    if (like) {
+      await TokenLike.deleteOne(data)
+    } else {
+      like = new TokenLike(data)
+      await like.save()
+    }
+
+    return res.status(200).json({ message: 'OK', like })
+
+  } catch (error) {
+    console.error(error)
+    return res.status(500).json({ code: 500, message: 'Something went wrong.' })
+  }
+
+
 })
 
 router.post('/', async (req, res) => {
