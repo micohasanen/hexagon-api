@@ -15,6 +15,8 @@ const Sale = require("../models/Sale")
 const Listing = require("../models/Listing")
 const Bid = require("../models/Bid")
 
+const TokenLike = require("../models/TokenLike")
+
 // Middleware
 const { extractUser } = require("../middleware/VerifySignature")
 
@@ -51,7 +53,7 @@ router.get("/search", async (req, res) => {
     return res.status(200).json({ total: users.length, results: users })
   } catch (error) {
     return res.status(500).json({ message: 'Something went wrong.', error })
-  } 
+  }
 })
 
 router.get('/:address', async (req, res) => {
@@ -68,8 +70,8 @@ router.get('/:address', async (req, res) => {
 
     for (const balance of balances) {
       const collection = await Collection.findOne({ address: balance._id }).distinct('floorPrice')
-      if (collection.length) { 
-        estimatedValue += collection[0] * balance.amount 
+      if (collection.length) {
+        estimatedValue += collection[0] * balance.amount
       }
     }
 
@@ -100,9 +102,9 @@ router.get("/:address/tokens", async (req, res) => {
     const totalPageCount = Math.ceil(total / size) - 1
 
     const balances = await Balance.find(query)
-    .skip(page * size)
-    .limit(size)
-    .exec()
+      .skip(page * size)
+      .limit(size)
+      .exec()
 
     const auctionedItems = await Auction.find({
       owner: req.params.address,
@@ -113,28 +115,28 @@ router.get("/:address/tokens", async (req, res) => {
     console.log(balances)
     for (const balance of balances) {
       const token = await Token.findOne({ collectionId: balance.collectionId, tokenId: balance.tokenId })
-                          .populate('listings')
-                          .populate('bids')
-                          .populate('transfers')
-                          .select('-traits -metadata')
-                          .exec()
+        .populate('listings')
+        .populate('bids')
+        .populate('transfers')
+        .select('-traits -metadata')
+        .exec()
       results.push(token)
     }
 
     const auctioned = []
     for (const item of auctionedItems) {
       const token = await Token.findOne({ collectionId: item.collectionAddress, tokenId: item.tokenId })
-      .select('-traits -metadata')
-      .populate('auctions')
-      .exec()
+        .select('-traits -metadata')
+        .populate('auctions')
+        .exec()
 
       auctioned.push(token)
     }
 
-    return res.status(200).json({ 
-      total, 
-      totalPageCount, 
-      page, 
+    return res.status(200).json({
+      total,
+      totalPageCount,
+      page,
       size,
       previousPage: page === 0 ? null : page - 1,
       nextPage: page === totalPageCount ? null : page + 1,
@@ -159,9 +161,9 @@ router.get("/:address/tokens/auctioned", async (req, res) => {
     const auctioned = []
     for (const item of auctionedItems) {
       const token = await Token.findOne({ collectionId: item.collectionAddress, tokenId: item.tokenId })
-      .select('-traits -metadata')
-      .populate('auctions')
-      .exec()
+        .select('-traits -metadata')
+        .populate('auctions')
+        .exec()
 
       auctioned.push(token)
     }
@@ -186,24 +188,24 @@ router.get('/:address/notifications', async (req, res) => {
     const totalPageCount = Math.ceil(total / size) - 1
 
     const notifications = await Notification
-                                .find(query)
-                                .limit(size)
-                                .skip(size * page)
-                                .sort('-createdAt')
-                                .exec()
+      .find(query)
+      .limit(size)
+      .skip(size * page)
+      .sort('-createdAt')
+      .exec()
 
-    return res.status(200).json({ 
-      total, 
+    return res.status(200).json({
+      total,
       totalPageCount,
       page,
       size,
       nextPage: page === totalPageCount ? null : page + 1,
       previousPage: page === 0 ? null : page - 1,
-      results: notifications 
+      results: notifications
     })
   } catch (error) {
     return res.status(500).json({ message: 'Something went wrong.', error })
-  } 
+  }
 })
 
 router.get('/:address/activity', async (req, res) => {
@@ -222,23 +224,23 @@ router.get('/:address/activity', async (req, res) => {
     const address = req.params.address
 
     if (req.query.include.includes('transfers')) {
-      const transfers = await Transfer.find({ 
+      const transfers = await Transfer.find({
         blockTimestamp: { $gte: startDate, $lte: endDate },
-        $or: [ { fromAddress: address }, { toAddress: address } ]
+        $or: [{ fromAddress: address }, { toAddress: address }]
       }).lean().exec()
 
       for (const transfer of transfers) {
         transfer.activityType = 'transfer'
         transfer.timestamp = transfer.blockTimestamp
       }
-      
+
       results.push(...transfers)
     }
 
     if (req.query.include.includes('sales')) {
       const sales = await Sale.find({
         timestamp: { $gte: startDate, $lte: endDate },
-        $or: [ { seller: address }, { buyer: address } ]
+        $or: [{ seller: address }, { buyer: address }]
       }).lean().exec()
 
       for (const sale of sales) {
@@ -295,7 +297,7 @@ router.get('/:address/activity', async (req, res) => {
     return res.status(200).json({ total: results.length, results })
   } catch (error) {
     return res.status(500).json({ message: 'Something went wrong.', error })
-  } 
+  }
 })
 
 router.get('/:address/offers', async (req, res) => {
@@ -351,7 +353,7 @@ router.get('/:address/offers', async (req, res) => {
 
     if (includeTokenData) {
       for (const offer of offers) {
-        const token = await Token.findOne({ 
+        const token = await Token.findOne({
           collectionId: offer.contractAddress,
           tokenId: offer.tokenId
         }).select('name collectionId image imageHosted _id tokenId description').exec()
@@ -365,7 +367,24 @@ router.get('/:address/offers', async (req, res) => {
     return res.status(200).json({ total: offers.length, results: offers })
   } catch (error) {
     return res.status(500).json({ message: 'Something went wrong.', error })
-  } 
+  }
+})
+
+router.get('/:address/likes', async (req, res) => {
+
+  try {
+
+    if (!req.params.address) return res.status(400).json({ message: 'Missing User Address Parameter..' })
+
+    let userAddress = req.params.address
+    const userLikes = await TokenLike.find({ userAddress: userAddress }).exec()
+    res.status(200).json({ results: userLikes })
+
+
+  } catch (error) {
+    return res.status(500).json({ message: 'Something went wrong.', error })
+  }
+
 })
 
 router.post('/me', [extractUser], async (req, res) => {
@@ -384,7 +403,7 @@ router.post('/me', [extractUser], async (req, res) => {
     return res.status(200).send(user)
   } catch (error) {
     return res.status(500).json({ message: 'Something went wrong.', error })
-  } 
+  }
 })
 
 module.exports = router
