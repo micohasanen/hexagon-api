@@ -13,6 +13,7 @@ const ABI_ERC1155 = require("../abis/ERC1155.json")
 const Token = require("../models/Token")
 const Auction = require("../models/Auction")
 const Balance = require("../models/Balance")
+const Listing = require("../models/Listing")
 
 // Web3
 const GetProvider = require("../utils/ChainProvider")
@@ -21,36 +22,42 @@ const contractUtils = require("../utils/contractType")
 const { toTwosComplement } = require("../utils/base")
 const knownGateways = ['https://gateway.pinata.cloud/ipfs/', 'https://gateway.ipfs.io/ipfs/', 'https://gateway.moralisipfs.com/ipfs/']
 
-function resolveIpfs (path) {
-  for (const gateway of knownGateways) {
+function resolveIpfs(path)
+{
+  for (const gateway of knownGateways)
+  {
     if (path?.startsWith(gateway))
       console.log('matches', gateway)
-      return path.replace(gateway, process.env.IPFS_GATEWAY)
+    return path.replace(gateway, process.env.IPFS_GATEWAY)
   }
   if (path?.startsWith('ipfs://'))
     return path.replace('ipfs://', process.env.IPFS_GATEWAY)
   return path
 }
 
-async function updateBalances (data) {
+async function updateBalances(data)
+{
   let owner = data.toAddress
-  
-  try {
+
+  try
+  {
     const { Provider } = GetProvider(data.chain)
     const abi = data.contractType === 'ERC1155' ? ABI_ERC1155 : ABI_ERC721
     const contract = new Provider.eth.Contract(abi, data.tokenAddress)
 
     // Get new balances of transfer parties
-    if (data.contractType === 'ERC721') {
+    if (data.contractType === 'ERC721')
+    {
       owner = await contract.methods.ownerOf(data.tokenId).call()
 
-      await Balance.updateOne({ 
-        tokenId: data.tokenId, 
+      await Balance.updateOne({
+        tokenId: data.tokenId,
         collectionId: data.tokenAddress,
         chain: data.chain
       }, { address: owner, amount: 1 }, { upsert: true })
 
-    } else if (data.contractType === 'ERC1155') {
+    } else if (data.contractType === 'ERC1155')
+    {
       let balanceFrom = 0
       let balanceTo = 0
 
@@ -62,7 +69,8 @@ async function updateBalances (data) {
 
       const createOptions = { upsert: true }
 
-      if (!contractUtils.isZeroAddress(data.fromAddress)) {
+      if (!contractUtils.isZeroAddress(data.fromAddress))
+      {
         await Balance.updateOne({
           address: data.fromAddress,
           tokenId: data.tokenId,
@@ -71,7 +79,8 @@ async function updateBalances (data) {
         }, { amount: balanceFrom }, createOptions)
       }
 
-      if (!contractUtils.isZeroAddress(data.toAddress)) {
+      if (!contractUtils.isZeroAddress(data.toAddress))
+      {
         await Balance.updateOne({
           address: data.toAddress,
           tokenId: data.tokenId,
@@ -79,28 +88,34 @@ async function updateBalances (data) {
           chain: data.chain
         }, { amount: balanceTo }, createOptions)
       }
-  }
+    }
 
-  return Promise.resolve(owner)
-  } catch (error) {
+    return Promise.resolve(owner)
+  } catch (error)
+  {
     console.error(error)
     return Promise.resolve(owner)
   }
 }
 
-exports.getAllForCollection = async (collectionId) => {
-  try {
+exports.getAllForCollection = async (collectionId) =>
+{
+  try
+  {
     if (!collectionId) throw new Error('Missing Collection Address')
     const tokens = await Token.find({ collectionId })
 
     return Promise.resolve(tokens)
-  } catch (error) {
+  } catch (error)
+  {
     return Promise.reject(error)
   }
 }
 
-exports.isOwnerOfToken = async (collectionAddress, userAddress, tokenId, qty) => {
-  try {
+exports.isOwnerOfToken = async (collectionAddress, userAddress, tokenId, qty) =>
+{
+  try
+  {
     if (!qty) qty = 1
     const token = await Token.findOne({ collectionId: collectionAddress, tokenId }).populate('tokenCollection').exec()
     if (!token || !token.tokenCollection) return { owner: '', status: false }
@@ -110,34 +125,40 @@ exports.isOwnerOfToken = async (collectionAddress, userAddress, tokenId, qty) =>
 
     const contractType = contractUtils.getContractType(code)
 
-    if (contractType === 'ERC721') {
+    if (contractType === 'ERC721')
+    {
       const contract = new Provider.eth.Contract(ABI_ERC721, collectionAddress)
       const currentOwner = await contract.methods.ownerOf(tokenId).call()
 
       if (currentOwner.toLowerCase() === userAddress.toLowerCase()) return { owner: currentOwner, status: true, contractType: 'ERC721' }
       return { owner: '', status: false, contractType: 'ERC721' }
-    } else if (contractType === 'ERC1155') { // Is an ERC1155 Contract
+    } else if (contractType === 'ERC1155')
+    { // Is an ERC1155 Contract
       const contract = new Provider.eth.Contract(ABI_ERC1155, collectionAddress)
       const tokenBalance = await contract.methods.balanceOf(userAddress, tokenId).call()
-      
+
       if (parseInt(tokenBalance) < qty) return { owner: '', status: false }
       return { owner: userAddress, status: true, contractType: 'ERC1155' }
     }
 
-  } catch (error) {
+  } catch (error)
+  {
     return { owner: '', status: false }
   }
 }
 
-exports.add = async (data) => {
-  try {
+exports.add = async (data) =>
+{
+  try
+  {
     if (!data.collectionId || !data.tokenId) throw new Error('Missing required data.')
 
     // Prevent multiple token ids within the same collection to be stored in the db
     const tokenHash = crypto.createHash('sha256').update(`${data.collectionId.toLowerCase()}:${data.tokenId}`).digest('hex')
 
     let token = await Token.findOne({ collectionId: data.collectionId, tokenId: data.tokenId })
-    if (!token) {
+    if (!token)
+    {
       token = new Token({ ...data, tokenHash })
       await token.save()
 
@@ -145,31 +166,38 @@ exports.add = async (data) => {
     }
 
     return Promise.resolve(token)
-  } catch (error) {
+  } catch (error)
+  {
     return Promise.reject(error)
   }
 }
 
-exports.update = async (data) => {
-  try {
+exports.update = async (data) =>
+{
+  try
+  {
     if (!data.collectionId || !data.tokenId) throw new Error('Missing required data.')
 
     const token = await Token.findOne({ collectionId: data.collectionId, tokenId: data.tokenId })
     if (!token) throw new Error('Token not found')
 
-    Object.entries(data).forEach(([key, val]) => {
+    Object.entries(data).forEach(([key, val]) =>
+    {
       token[key] = val
     })
     await token.save()
 
     return Promise.resolve(token)
-  } catch (error) {
+  } catch (error)
+  {
     return Promise.reject(error)
   }
 }
 
-exports.refreshMetadata = async function (id) {
- try {
+exports.refreshMetadata = async function (id)
+{
+  try
+  {
     if (!id) throw new Error('Missing required data.')
 
     const token = await Token.findOne({ _id: id }).populate('tokenCollection').exec()
@@ -178,24 +206,28 @@ exports.refreshMetadata = async function (id) {
     const { Provider } = GetProvider(token.tokenCollection.chain)
     let tokenUri = ''
 
-    if (!token.contractType) {
+    if (!token.contractType)
+    {
       const code = await Provider.eth.getCode(token.collectionId)
       token.contractType = contractUtils.getContractType(code)
     }
 
-    if (token.contractType === 'ERC721') {
+    if (token.contractType === 'ERC721')
+    {
       const contract = new Provider.eth.Contract(ABI_ERC721, token.collectionId)
       tokenUri = await contract.methods.tokenURI(token.tokenId).call()
-  
+
       const owner = await contract.methods.ownerOf(token.tokenId).call()
       token.owner = owner
-    } else if (token.contractType === 'ERC1155') {
+    } else if (token.contractType === 'ERC1155')
+    {
       const contract = new Provider.eth.Contract(ABI_ERC1155, token.collectionId)
       tokenUri = await contract.methods.uri(token.tokenId).call()
 
       console.log(tokenUri)
 
-      if (tokenUri.includes('{id}')) {
+      if (tokenUri.includes('{id}'))
+      {
         tokenUri = tokenUri.replace('{id}', toTwosComplement(token.tokenId))
       }
       console.log("ERC1155 Token URI", tokenUri)
@@ -203,42 +235,51 @@ exports.refreshMetadata = async function (id) {
 
     console.log('Refreshing metadata for token', token.tokenId)
 
-    if (tokenUri) {
+    if (tokenUri)
+    {
       if (tokenUri.startsWith('ipfs://')) tokenUri = tokenUri.replace('ipfs://', process.env.IPFS_GATEWAY)
       token.tokenUri = tokenUri
 
       let fetched
 
-      if (tokenUri.startsWith('https://')) {
+      if (tokenUri.startsWith('https://'))
+      {
         fetched = await axios.get(tokenUri)
-      } else {
+      } else
+      {
         const json = Buffer.from(tokenUri.split(',')[1], 'base64').toString('utf8')
         fetched = { data: JSON.parse(json) }
       }
 
-      if (fetched.data) {
+      if (fetched.data)
+      {
         if (fetched.data.image?.startsWith('ipfs://')) token.imageHosted = fetched.data.image
-        else {
+        else
+        {
           // First check if is duplicate with another image
-          const tokenWithSameImage = await Token.findOne({ 
-            collectionId: token.collectionId, 
-            image: fetched.data.image, 
+          const tokenWithSameImage = await Token.findOne({
+            collectionId: token.collectionId,
+            image: fetched.data.image,
             imageHosted: { $exists: true }
           })
 
           // If exists, duplicate details, if not, upload to ipfs
-          if (tokenWithSameImage) {
+          if (tokenWithSameImage)
+          {
             token.imageHosted = tokenWithSameImage.imageHosted
-          } else {
+          } else
+          {
             let image
 
-            if (fetched.data.image.startsWith('https://')) {
+            if (fetched.data.image.startsWith('https://'))
+            {
               const imageReq = await axios.get(resolveIpfs(fetched.data.image), { responseType: 'arraybuffer' })
               image = imageReq.data
-            } else {
+            } else
+            {
               image = Buffer.from(fetched.data.image.split(',')[1], 'base64').toString('utf8')
             }
-  
+
             const buffer = Buffer.from(image)
             const upload = new Moralis.File(`hexagon_${nanoid()}.jpg`, Array.from(buffer))
             await upload.saveIPFS({ useMasterKey: true })
@@ -249,22 +290,26 @@ exports.refreshMetadata = async function (id) {
 
         token.metadata = fetched.data
 
-        if (fetched.data.attributes) {
+        if (fetched.data.attributes)
+        {
           // Get rarity score from collection
           token.traits = fetched.data.attributes
           let totalRarity = 0
-          token.traits.forEach((trait) => {
+          token.traits.forEach((trait) =>
+          {
             if (!token.tokenCollection.traits?.length) return
             const type = token.tokenCollection.traits.find((t) => t.type === trait.trait_type)
-            if (!type) {
+            if (!type)
+            {
               generateRarity(token.collectionId.toLowerCase())
               return
             }
             const attr = type.attributes.find((a) => a.value === trait.value)
 
-            if (!attr || !attr.rarityScore) { 
+            if (!attr || !attr.rarityScore)
+            {
               // generateRarity(token.collectionId.toLowerCase())
-              return 
+              return
             }
             trait.rarityPercent = attr.rarityPercent
             trait.rarityScore = attr.rarityScore
@@ -283,7 +328,7 @@ exports.refreshMetadata = async function (id) {
     await token.save()
 
     this.syncAuctions(token)
-    updateBalances({ 
+    updateBalances({
       chain: token.tokenCollection.chain,
       tokenAddress: token.collectionId,
       contractType: token.tokenCollection.contractType,
@@ -293,16 +338,20 @@ exports.refreshMetadata = async function (id) {
     })
 
     return Promise.resolve(token)
- } catch (error) {
+  } catch (error)
+  {
     console.error(error)
     return Promise.reject(error)
   }
 }
 
-exports.logTransfer = async (data) => {
-  try {
+exports.logTransfer = async (data) =>
+{
+  try
+  {
     let token = await Token.findOne({ collectionId: data.tokenAddress.toLowerCase(), tokenId: data.tokenId }).exec()
-    if (!token) { 
+    if (!token)
+    {
       console.log('Token Minted, creating new')
       token = new Token()
       token.collectionId = data.tokenAddress
@@ -319,22 +368,41 @@ exports.logTransfer = async (data) => {
     let newOwner = data.toAddress
 
     // Update owner balances
-    if (data.chain) {
+    if (data.chain)
+    {
       newOwner = await updateBalances(data)
     }
 
     if (token.contractType === 'ERC721') token.owner = newOwner
     await token.save()
 
+    const listings = await Listing.findOne({
+      collectionId: token.contractAddress,
+      tokenId: token.tokenId,
+      active: true
+    })
+
+    if (!listings)
+    {
+      if (listing.userAddress != token.owner)
+      {
+        listing.active = false
+        await listing.save()
+      }
+    }
+
+
     if (!token.metadata || !token.imageHosted) addMetadata(token._id)
 
     return Promise.resolve(token)
-  } catch (error) {
+  } catch (error)
+  {
     return Promise.reject(error)
   }
 }
 
-function getHighestAndLowestPrice(prices) {
+function getHighestAndLowestPrice(prices)
+{
   if (!prices?.length) return { highestPrice: 0, lowestPrice: 0 }
 
   let highestPrice = Math.max(...prices)
@@ -343,7 +411,8 @@ function getHighestAndLowestPrice(prices) {
   return { highestPrice, lowestPrice }
 }
 
-function isExpired (timestamp) {
+function isExpired(timestamp)
+{
   const expiry = new Date(timestamp).getTime()
   const now = new Date().getTime()
 
@@ -351,24 +420,29 @@ function isExpired (timestamp) {
   return false
 }
 
-exports.logListing = async (data) => {
-  try {
+exports.logListing = async (data) =>
+{
+  try
+  {
     if (!data._id) throw new Error('Listing _id must be specified')
 
     const token = await Token.findOne({ collectionId: data.collectionId, tokenId: data.tokenId })
-                      .populate('listings')
-                      .exec()
+      .populate('listings')
+      .exec()
     if (!token) throw new Error('No token found')
 
     let exists = token.listings.find(l => l._id.toString() === data._id.toString())
-    if (!exists) {
+    if (!exists)
+    {
       token.listings.push(data)
     } else exists = data
 
-    const prices = token.listings.filter((l) => {
-      return l.active 
-    }).map((l) => { 
-      return l.pricePerItem 
+    const prices = token.listings.filter((l) =>
+    {
+      return l.active
+    }).map((l) =>
+    {
+      return l.pricePerItem
     })
     const calc = getHighestAndLowestPrice(prices)
 
@@ -383,13 +457,16 @@ exports.logListing = async (data) => {
     updateCollectionPrices(data.collectionId)
 
     return Promise.resolve(token)
-  } catch (error) {
+  } catch (error)
+  {
     return Promise.reject(error)
   }
 }
 
-exports.logBid = async (data) => {
-  try {
+exports.logBid = async (data) =>
+{
+  try
+  {
     if (!data._id) throw new Error('Data _id must be specified')
     const token = await Token.findOne({ collectionId: data.collectionId, tokenId: data.tokenId }).populate('bids').exec()
     if (!token) throw new Error('No token found')
@@ -398,18 +475,20 @@ exports.logBid = async (data) => {
     if (!exists) token.bids.push(data)
     else exists = data
 
-    const prices = token.bids.filter((b) => { 
+    const prices = token.bids.filter((b) =>
+    {
       return b.active
-    }).map(b => { 
-      return b.pricePerItem 
+    }).map(b =>
+    {
+      return b.pricePerItem
     })
     const calc = getHighestAndLowestPrice(prices)
 
     if (
-      data.active && 
-      !isExpired(data.expiry) && 
+      data.active &&
+      !isExpired(data.expiry) &&
       data.pricePerItem > token.highestBid
-      ) { token.highestBidder = data.userAddress }
+    ) { token.highestBidder = data.userAddress }
 
     if (!calc.highestPrice && !calc.lowestPrice) token.highestBidder = ''
     token.highestBid = calc.highestPrice
@@ -419,13 +498,16 @@ exports.logBid = async (data) => {
     await token.save()
 
     return Promise.resolve(token)
-  } catch (error) {
+  } catch (error)
+  {
     return Promise.reject(error)
   }
 }
 
-exports.syncAuctions = async (data = { collectionId: '', tokenId: null }) => {
-  try {
+exports.syncAuctions = async (data = { collectionId: '', tokenId: null }) =>
+{
+  try
+  {
     const token = await Token.findOne({
       tokenId: data.tokenId,
       collectionId: data.collectionId
@@ -433,15 +515,17 @@ exports.syncAuctions = async (data = { collectionId: '', tokenId: null }) => {
 
     if (!token) throw new Error('No token found')
 
-    const auctions = await Auction.find({ 
+    const auctions = await Auction.find({
       collectionAddress: data.collectionId,
       tokenId: data.tokenId,
-      active: true 
+      active: true
     }).distinct('_id').exec()
 
-    if (auctions.length) {
+    if (auctions.length)
+    {
       token.auctions = auctions
-    } else {
+    } else
+    {
       token.auctions = []
     }
 
@@ -449,27 +533,32 @@ exports.syncAuctions = async (data = { collectionId: '', tokenId: null }) => {
     await token.save()
 
     return Promise.resolve(true)
-  } catch (error) {
+  } catch (error)
+  {
     return Promise.reject(error)
   }
 }
 
-exports.removeDuplicates = async (collectionId) => {
-  try {
+exports.removeDuplicates = async (collectionId) =>
+{
+  try
+  {
     const counts = await Token.aggregate([
       { $match: { collectionId: collectionId.toLowerCase() } },
-      { $group: { _id: "$tokenId", count: { "$sum": 1 }}},
-      { $match: { count: { $gt: 1 }}} 
+      { $group: { _id: "$tokenId", count: { "$sum": 1 } } },
+      { $match: { count: { $gt: 1 } } }
     ])
 
     console.log(counts)
 
-    for (const count of counts) {
+    for (const count of counts)
+    {
       await Token.deleteOne({ tokenId: count._id, collectionId })
     }
 
     return Promise.resolve(true)
-  } catch (error) {
+  } catch (error)
+  {
     return Promise.reject(error)
   }
 }
