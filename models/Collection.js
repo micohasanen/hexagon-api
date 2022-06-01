@@ -5,9 +5,6 @@ const { sanitizeUrl } = require("../utils/base")
 const ABI_ERC721 = require("../abis/ERC721.json")
 const ABI_ERC1155 = require("../abis/ERC721.json")
 
-// Controllers
-const TokenController = require("../controllers/TokenController")
-
 // Web3
 const { Moralis } = require("../utils/Moralis")
 const GetProvider = require("../utils/ChainProvider")
@@ -186,67 +183,6 @@ CollectionSchema.pre('save', async function (next) {
     next()
   }
 })
-
-/*
-CollectionSchema.post('save', function () {
-  if (!this.traits?.length) {
-    this.getAllTokens()
-  }
-})
-*/
-
-CollectionSchema.methods.getAllTokens = async function () {
-  try {
-    let total = 1
-    const batchSize = 500
-    let processed = 0
-    let contractType = ''
-
-    let cursor = ''
-
-    for (let i = 0; i < Math.ceil(total / batchSize); i++) {
-      const settings = {
-        address: this.address,
-        chain: this.chain
-      }
-      if (cursor) settings.cursor = cursor
-
-      const tokenData = await Moralis.Web3API.token.getAllTokenIds(settings)
-
-      total = parseInt(tokenData.total)
-      cursor = tokenData.cursor
-
-      if (!total) return
-      console.log({ total, i })
-
-      for (const token of tokenData.result) {
-        const tempToken = {
-          collectionId: this.address,
-          tokenId: token.token_id,
-          tokenUri: token.token_uri,
-          contractType: token.contract_type,
-          metadata: JSON.parse(token.metadata)
-        }
-
-        contractType = token.contractType
-
-        TokenController.add(tempToken)
-        processed += 1
-        if (processed === total) {
-          this.totalSupply = total
-          if (!this.contractType) this.contractType = contractType
-
-          await this.save()
-
-          // generateRarity(this.address)
-        }
-      }
-    }
-  } catch (error) {
-    console.error(error)
-    throw new Error(error)
-  }
-}
 
 CollectionSchema.index({ name: 'text' })
 

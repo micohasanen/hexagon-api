@@ -62,6 +62,31 @@ router.get('/pending', async (req, res) => {
   return res.status(200).json({results: collections});
 });
 
+router.put('/:address', [OnlyOwner], async (req, res) => {
+  try {
+    const forbiddenFields = ['whitelisted', 'rejected', 'pending', 
+    'totalSupply', 'rarity', 'traits', 'volume', 'sales', 'floorPrice',
+    'averagePrice', 'highestPrice', 'minPrice']
+
+    if (!req.body) return res.status(400).json({ code: 400, message: 'Nothing to update.' })
+
+    const fields = {}
+    Object.entries(req.body).forEach(([key, value]) => {
+      if (forbiddenFields.includes(key)) return
+      fields[key] = value
+    })
+
+    const collection = await Collection.findOneAndUpdate({ 
+      address: req.params.address 
+    }, fields)
+
+    return res.status(200).json({ message: 'Collection Updated successfully', collection })
+  } catch (error) {
+    console.error(error.message)
+    res.status(500).json({code: 500, message: 'Something went wrong.'});
+  }
+})
+
 router.put('/:address/reject', [AdminOnly], async (req, res) => {
   try {
     const collection = await Collection.findOneAndUpdate({
@@ -80,8 +105,23 @@ router.put('/:address/reject', [AdminOnly], async (req, res) => {
 
 router.put('/:address/approve', [AdminOnly], async (req, res) => {
   try {
+    const { address } = req.params
 
+    const collection = await Collection.findOne({ address })
+    if (!collection) return res.status(404).json({ code: 404, message: 'No collection found.' })
+
+    // Update collection to whitelisted state
+    collection.whitelisted = true
+    collection.pending = false
+    collection.rejected = false
+    await collection.save()
+
+    // Sync Tokens in the background
+    CollectionController.syncTokens(collection)
+
+    return res.status(200).json({ message: 'Collection Approved successfully.' })
   } catch (error) {
+    console.error(error)
     res.status(500).json({code: 500, message: 'Something went wrong.'});
   }
 })
@@ -667,7 +707,7 @@ router.post("/:address/save", async (req, res) => {
 
 router.post("/:address/sync-tokens", [AdminOnly], async (req, res) => {
   const collection = await Collection.findOne({ address: req.params.address.toLowerCase() })
-  collection.getAllTokens()
+  CollectionController.syncTokens(collection)
   return res.sendStatus(200)
 })
 

@@ -83,4 +83,9 @@ module.exports = () => {
   const priceWorker = new Worker('prices', async (job) => {
     await CollectionController.updatePrices(job.data.address)
   }, { connection: config.redisConnection })
+
+  // Sync all collection tokens
+  new Worker('token-sync', async (job) => {
+    await CollectionController.syncTokens(job.collection)
+  }, { connection: config.redisConnection })
 }
