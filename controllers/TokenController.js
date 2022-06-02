@@ -13,6 +13,7 @@ const ABI_ERC1155 = require("../abis/ERC1155.json")
 const Token = require("../models/Token")
 const Auction = require("../models/Auction")
 const Balance = require("../models/Balance")
+const Listing = require("../models/Listing")
 
 // Web3
 const GetProvider = require("../utils/ChainProvider")
@@ -299,6 +300,7 @@ exports.refreshMetadata = async function (id) {
   }
 }
 
+
 exports.logTransfer = async (data) => {
   try {
     let token = await Token.findOne({ collectionId: data.tokenAddress.toLowerCase(), tokenId: data.tokenId }).exec()
@@ -326,6 +328,22 @@ exports.logTransfer = async (data) => {
     if (token.contractType === 'ERC721') token.owner = newOwner
     await token.save()
 
+    const listings = await Listing.find({
+      collectionId: token.contractAddress,
+      tokenId: token.tokenId,
+      active: true
+    })
+    
+    for (const listing of listings) {
+      if (listing.userAddress != token.owner)
+      {
+        listing.active = false
+        await listing.save()
+      }
+       
+    }
+
+ 
     if (!token.metadata || !token.imageHosted) addMetadata(token._id)
 
     return Promise.resolve(token)
