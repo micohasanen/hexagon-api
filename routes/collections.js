@@ -419,13 +419,72 @@ router.get('/:address/token/:tokenId', async (req, res) => {
       .populate('bids')
       .populate('transfers')
       .populate('auctions')
+      .lean()
       .exec()
     if (!token) return res.status(404).json({ message: 'No token found.' })
+
+    if (req.query.include?.includes('likes')) {
+      const likes = await TokenLike.find({
+        collectionId: req.params.address, 
+        tokenId: req.params.tokenId 
+      }).select('userAddress')
+
+      token.likes = likes
+    }
 
     return res.status(200).send(token)
   } catch (error) {
     return res.status(500).json({ message: 'Something went wrong.', error })
   }
+})
+
+router.get('/:collectionId/tokens/:tokenId/likes', async (req, res) => {
+
+  try {
+
+    if (!req.params.collectionId) return res.status(400).json({ message: 'Missing Collection ID Parameter..' })
+    if (!req.params.tokenId) return res.status(400).json({ message: 'Missing TokenID Parameter..' })
+
+    let collectionId = req.params.collectionId
+    let tokenId = req.params.tokenId
+    const tokenLikes = await TokenLike.find({ collectionId: collectionId, tokenId: tokenId }).exec()
+
+    res.status(200).json({ results: tokenLikes, count: tokenLikes.length })
+
+
+
+  } catch (error) {
+    return res.status(500).json({ message: 'Something went wrong.', error })
+  }
+
+})
+
+
+router.post('/:collectionId/tokens/:tokenId/likes', [
+  extractUser
+], async (req, res) => {
+
+
+  try {
+    const data = { collectionId, tokenId } = req.params
+    data.userAddress = req.user.address
+
+    let like = await TokenLike.exists(data)
+    if (like) {
+      await TokenLike.deleteOne(data)
+    } else {
+      like = new TokenLike(data)
+      await like.save()
+    }
+
+    return res.status(200).json({ message: 'OK', like })
+
+  } catch (error) {
+    console.error(error)
+    return res.status(500).json({ code: 500, message: 'Something went wrong.' })
+  }
+
+
 })
 
 router.get('/:address/token/:tokenId/activity', async (req, res) => {
@@ -619,61 +678,6 @@ router.get('/:address/sales', async (req, res) => {
   const totalSales = sales.length
 
   return res.status(200).json({ volume, totalSales, results: sales })
-})
-
-router.get('/:collectionId/tokens/:tokenId/likes', async (req, res) => {
-
-  try {
-
-    if (!req.params.collectionId) return res.status(400).json({ message: 'Missing Collection ID Parameter..' })
-    if (!req.params.tokenId) return res.status(400).json({ message: 'Missing TokenID Parameter..' })
-
-    let collectionId = req.params.collectionId
-    let tokenId = req.params.tokenId
-    const tokenLikes = await TokenLike.find({ collectionId: collectionId, tokenId: tokenId }).exec()
-
-    res.status(200).json({ results: tokenLikes, count: tokenLikes.length })
-
-
-
-  } catch (error) {
-    return res.status(500).json({ message: 'Something went wrong.', error })
-  }
-
-})
-
-
-router.post('/likes', [
-  body('collectionId').exists().notEmpty().isString(),
-  body('tokenId').exists().notEmpty().custom(value => !isNaN(value)),
-  extractUser
-], async (req, res) => {
-
-
-  try {
-    if (!validationResult(req).isEmpty()) {
-      return res.status(400).json({ message: 'Validation failed.', error: validationResult(req).array() })
-    }
-
-    const data = { collectionId, tokenId } = req.body
-    data.userAddress = req.user.address
-
-    let like = await TokenLike.exists(data)
-    if (like) {
-      await TokenLike.deleteOne(data)
-    } else {
-      like = new TokenLike(data)
-      await like.save()
-    }
-
-    return res.status(200).json({ message: 'OK', like })
-
-  } catch (error) {
-    console.error(error)
-    return res.status(500).json({ code: 500, message: 'Something went wrong.' })
-  }
-
-
 })
 
 router.post('/', async (req, res) => {

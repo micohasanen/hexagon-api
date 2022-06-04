@@ -13,6 +13,8 @@ router.post('/ipfs', async (req, res) => {
       const moralisFile = new Moralis.File(file.name, data, file.mimetype)
       await moralisFile.saveIPFS({ useMasterKey: true })
 
+      console.log(moralisFile)
+
       uploaded.push({ fileName: file.name, ipfsUrl: `ipfs://${moralisFile.hash()}`, hash: moralisFile.hash() })
     }
 
