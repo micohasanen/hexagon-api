@@ -376,19 +376,19 @@ exports.logTransfer = async (data) =>
     if (token.contractType === 'ERC721') token.owner = newOwner
     await token.save()
 
-    const listings = await Listing.findOne({
+    const listings = await Listing.find({
       collectionId: token.contractAddress,
       tokenId: token.tokenId,
       active: true
     })
-
-    if (!listings)
-    {
+    
+    for (const listing of listings) {
       if (listing.userAddress != token.owner)
       {
         listing.active = false
         await listing.save()
       }
+       
     }
 
 
