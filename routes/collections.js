@@ -472,9 +472,19 @@ router.post('/:collectionId/tokens/:tokenId/likes', [
     let like = await TokenLike.exists(data)
     if (like) {
       await TokenLike.deleteOne(data)
+      
+      await Token.updateOne({ collectionId: collectionId, tokenId:tokenId}, {
+        $inc: { "likes.count": -1 }
+      }, { upsert: true })
+
     } else {
       like = new TokenLike(data)
       await like.save()
+
+      await Token.updateOne({ collectionId: collectionId, tokenId:tokenId}, {
+        $inc: { "likes.count": 1 }
+      }, { upsert: true })
+
     }
 
     return res.status(200).json({ message: 'OK', like })
