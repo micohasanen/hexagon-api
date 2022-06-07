@@ -93,7 +93,13 @@ const TokenSchema = mongoose.Schema({
     unique: true,
     index: true
   },
-  chain: String
+  chain: String,
+  likes: {
+    count: {
+     type: Number,
+     default: 0
+   }
+   }
 }, { timestamps: true, toObject: { virtuals: true }, toJSON: { virtuals: true } })
 
 TokenSchema.pre('save', function (next) {
