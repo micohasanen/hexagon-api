@@ -38,7 +38,6 @@ app.use('/collections', require("./routes/collections"))
 app.use('/c', require("./routes/collections"))
 app.use('/tokens', require("./routes/tokens"))
 app.use('/t', require("./routes/tokens"))
-
 app.use('/auth', require("./routes/auth"))
 app.use('/listings', require("./routes/listings"))
 app.use('/bids', require("./routes/bids"))
@@ -46,6 +45,7 @@ app.use('/users', require("./routes/users"))
 app.use('/auctions', require("./routes/auctions"))
 app.use('/notifications', require("./routes/notifications"))
 app.use('/uploads', require("./routes/uploads"))
+app.use('/comments', require("./routes/comments"))
 
 // If all else fails
 app.use(function (req, res, next)
