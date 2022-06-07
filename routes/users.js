@@ -1,6 +1,5 @@
 const router = require("express").Router()
 const parseDuration = require("parse-duration")
-const mongoose = require("mongoose")
 const { sanitizeUrl } = require("../utils/base")
 
 // Models
@@ -19,6 +18,21 @@ const TokenLike = require("../models/TokenLike")
 
 // Middleware
 const { extractUser } = require("../middleware/VerifySignature")
+const AdminOnly = require("../middleware/Auth_AdminOnly")
+
+router.get("/all", [AdminOnly], async (req, res) => {
+  try {
+    const page = Number(req.query.page) || 0
+    const size = Number(req.query.size) || 20
+
+    const count = await User.estimatedDocumentCount()
+    const users = await User.find().limit(size).skip(page * size).exec()
+
+    return res.status(200).json({ page, size, total: count, results: users })
+  } catch (error) {
+    return res.status(500).json({ message: 'Something went wrong.', error })
+  }
+})
 
 router.get("/search", async (req, res) => {
   try {
