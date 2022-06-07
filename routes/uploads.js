@@ -1,5 +1,5 @@
 const router = require("express").Router()
-const { Moralis } = require("../utils/Moralis")
+const PinataUpload = require("../utils/PinataUpload")
 
 router.post('/ipfs', async (req, res) => {
   try {
@@ -9,13 +9,8 @@ router.post('/ipfs', async (req, res) => {
     const uploaded = []
     
     for (const file of files) {
-      const data = Array.from(file.data)
-      const moralisFile = new Moralis.File(file.name, data, file.mimetype)
-      await moralisFile.saveIPFS({ useMasterKey: true })
-
-      console.log(moralisFile)
-
-      uploaded.push({ fileName: file.name, ipfsUrl: `ipfs://${moralisFile.hash()}`, hash: moralisFile.hash() })
+      const { IpfsHash } = await PinataUpload(file)
+      uploaded.push({ fileName: file.name, ipfsUrl: `ipfs://${IpfsHash}`, hash: IpfsHash })
     }
 
     return res.status(200).json({ message: 'Upload successful.', results: uploaded })
