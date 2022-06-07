@@ -331,16 +331,13 @@ exports.logTransfer = async (data) => {
     const listings = await Listing.find({
       collectionId: token.contractAddress,
       tokenId: token.tokenId,
+      userAddress: data.fromAddress,
       active: true
     })
     
     for (const listing of listings) {
-      if (listing.userAddress != token.owner)
-      {
-        listing.active = false
-        await listing.save()
-      }
-       
+      listing.active = false
+      await listing.save()
     }
 
  
