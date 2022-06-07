@@ -23,6 +23,7 @@ const TokenLike = require("../models/TokenLike")
 const TokenController = require("../controllers/TokenController")
 const TransferController = require("../controllers/TransferController")
 const CollectionController = require("../controllers/CollectionController")
+const CommentController = require("../controllers/CommentController")
 
 // Middleware
 const AdminOnly = require("../middleware/Auth_AdminOnly")
@@ -30,7 +31,6 @@ const OnlyOwner = require("../middleware/Auth_OwnerOnly")
 
 const { body, validationResult } = require("express-validator")
 const { extractUser } = require("../middleware/VerifySignature")
-
 
 router.get('/all', async (req, res) => {
   try {
@@ -437,6 +437,9 @@ router.get('/:address/token/:tokenId', async (req, res) => {
     return res.status(500).json({ message: 'Something went wrong.', error })
   }
 })
+
+router.get('/:collectionId/comments', CommentController.get)
+router.get('/:collectionId/tokens/:tokenId/comments', CommentController.get)
 
 router.get('/:collectionId/tokens/:tokenId/likes', async (req, res) => {
 
