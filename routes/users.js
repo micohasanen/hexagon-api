@@ -392,7 +392,14 @@ router.get('/:address/likes', async (req, res) => {
 
     let userAddress = req.params.address
     const userLikes = await TokenLike.find({ userAddress: userAddress }).exec()
-    res.status(200).json({ results: userLikes })
+
+    let tokens = []
+    for (const userLike of userLikes) {
+      const token = await Token.findOne({ collectionId: userLike.collectionId, tokenId: userLike.tokenId })
+      tokens.push(token)
+    }
+
+    res.status(200).json({ results: userLikes, tokens })
 
 
   } catch (error) {
