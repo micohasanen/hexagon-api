@@ -5,6 +5,9 @@ const PolygonProvider = new Web3(process.env.RPC_POLYGON)
 const ETHProvider = new Web3(process.env.RPC_ETH)
 const AVAXProvider = new Web3(process.env.RPC_AVAX)
 const BSCProvider = new Web3(process.env.RPC_BSC)
+const FTMProvider = new Web3(process.env.RPC_FTM)
+const ARBProvider = new Web3(process.env.RPC_ARB)
+const CROProvider = new Web3(process.env.RPC_CRO)
 
 function getProvider (chain) {
   switch (chain) {
@@ -18,6 +21,12 @@ function getProvider (chain) {
       return AVAXProvider
     case 'bsc':
       return BSCProvider
+    case 'fantom':
+      return FTMProvider
+    case 'arbitrum':
+      return ARBProvider
+     case 'cronos':
+       return CROProvider
   }
 }
 

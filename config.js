@@ -16,7 +16,10 @@ module.exports = {
     '137': process.env.MARKETPLACE_POLYGON,
     '1': process.env.MARKETPLACE_ETH,
     '43114': process.env.MARKETPLACE_AVAX,
-    '56': process.env.MARKETPLACE_BSC
+    '56': process.env.MARKETPLACE_BSC,
+    '250': process.env.MARKETPLACE_FTM,
+    '42161': process.env.MARKETPLACE_ARB,
+    '25': process.env.MARKETPLACE_CRO
   },
   smtp: {
     host: 'smtp-relay.sendinblue.com',
@@ -28,7 +31,7 @@ module.exports = {
     }
   },
   chains: {
-    mainnet: ['polygon', 'eth', 'avalanche', 'bsc'],
+    mainnet: ['polygon', 'eth', 'avalanche', 'bsc','fantom','arbitrum','cronos'],
     testnet: ['mumbai']
   }
 }
