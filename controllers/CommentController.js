@@ -1,9 +1,11 @@
 const Comment = require("../models/Comment")
+const  ObjectID = require('mongodb').ObjectId;
 
 exports.add = async (req, res) => {
   const { collectionId, tokenId, message,replyTo, userAddress } = req.body
   //const userAddress = req.user.address
 
+  
   try {
     const comment = new Comment({
       message,
@@ -18,19 +20,9 @@ exports.add = async (req, res) => {
    // console.log(commentSaved.id)
    // console.log(commentSaved._id)
     if(replyTo) {
-      console.log("IN")
-
-      const originalComment = await Comment.findOne({ 
-        "_id": ObjectId(replyTo)
-      })
-      console.log(originalComment)
-
+        const originalComment = await Comment.findOne({_id: ObjectID(replyTo)})
       if (!originalComment) throw new Error('No Comment found')
-
-      //await Comment.updateOne({ _id: ObjectId(replyTo)}, { $push: { replies: comment._id } })
-      
-     
-
+      await Comment.updateOne({ _id: ObjectID(replyTo)}, { $push: { replies: commentSaved._id } })
     } 
     
     return res.status(200).json({ message: 'Comment posted successfully.', comment })
