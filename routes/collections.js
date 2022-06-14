@@ -143,7 +143,11 @@ router.get('/', async (req, res) => {
 
     const settings = { whitelisted: true }
     if (chain !== 'all') settings.chain = chain
-    else settings.chain = { $nin: config.chains.testnet }
+    else { 
+      const testnetChains = config.chains.filter((chain) => chain.testnet)
+      const labels = testnetChains.map((chain) => chain.label)
+      settings.chain = { $nin: labels } 
+    }
 
     if (req.query.filter?.includes('featured')) settings.featured = true
     if (req.query.categories) {
@@ -787,6 +791,8 @@ router.post("/:address/save", async (req, res) => {
 
 router.post("/:address/sync-tokens", [AdminOnly], async (req, res) => {
   const collection = await Collection.findOne({ address: req.params.address.toLowerCase() })
+  if (!collection) return res.status(404).json({ message: 'No collection found.' })
+
   CollectionController.syncTokens(collection)
   return res.sendStatus(200)
 })

@@ -6,7 +6,6 @@ const ABI_ERC721 = require("../abis/ERC721.json")
 const ABI_ERC1155 = require("../abis/ERC721.json")
 
 // Web3
-const { Moralis } = require("../utils/Moralis")
 const GetProvider = require("../utils/ChainProvider")
 const contractType = require("../utils/contractType")
 
@@ -140,7 +139,7 @@ CollectionSchema.pre('save', async function (next) {
   }
 
   try {
-    const { Provider } = GetProvider(this.chain)
+    const { Provider } = await GetProvider(this.chain)
     const code = await Provider.eth.getCode(this.address)
 
     if (!this.contractType) {
@@ -162,15 +161,6 @@ CollectionSchema.pre('save', async function (next) {
     const supplyABI = contract.methods.totalSupply().encodeABI()
     if(contractType.hasMethod(code, supplyABI))
       this.totalSupply = await contract.methods.totalSupply().call()
-    else { // If contract does not have a total supply function, we use moralis magic
-      const supply = await Moralis.Web3API.token.getAllTokenIds({
-        chain: this.chain,
-        address: this.address,
-        limit: 1
-      })
-
-      this.totalSupply = Number(supply.total)
-    }
 
     // We are checking if the contract has an owner method before adding the owner
     const ownerABI = contract.methods.owner().encodeABI()
