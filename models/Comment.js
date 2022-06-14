@@ -24,6 +24,22 @@ const CommentSchema = new Schema({
     lowercase: true,
     trim: true
   },
+  isReply: {
+    type: Boolean,
+    default: false,
+    index: true
+  },
+  likes: {
+    count: {
+     type: Number,
+     default: 0
+    },
+    users: [{
+      type: String,
+      lowercase: true,
+      trim: true
+    }]
+  },
   replies: [{ type: Schema.Types.ObjectId, ref: 'Comment' }]
 }, { timestamps: true, toJSON: { virtuals: true }, toObject: { virtuals: true } })
 

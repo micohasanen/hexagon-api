@@ -1,7 +1,7 @@
 const Comment = require("../models/Comment")
 
 exports.add = async (req, res) => {
-  const { collectionId, tokenId, message } = req.body
+  const { collectionId, tokenId, message, replyTo } = req.body
   const userAddress = req.user.address
 
   try {
@@ -10,11 +10,49 @@ exports.add = async (req, res) => {
       collectionId,
       tokenId,
       userAddress,
-      timestamp: new Date()
+      timestamp: new Date(),
+      isReply: !!replyTo
     })
 
     await comment.save()
+
+    if(!!replyTo) {
+      const originalComment = await Comment.findOne({ _id: replyTo })
+      if (!originalComment) throw new Error('No Comment found')
+
+      await Comment.updateOne({ _id: replyTo }, { $push: { replies: comment._id } })
+    } 
+    
     return res.status(200).json({ message: 'Comment posted successfully.', comment })
+  } catch (error) {
+    return res.status(500).json({ code: 500, message: 'Something went wrong.' })
+  }
+}
+
+exports.like = async (req, res) => {
+  const { commentId } = req.body
+  const userAddress = req.user.address
+
+  try {
+    let comment = await Comment.findOne({ _id: commentId })
+    if (!comment) return res.status(404).json({ code: 404, message: 'No comment found.' })
+    
+    const userFound = comment.likes?.users?.includes(userAddress)
+    if (userFound) {
+      await Comment.updateOne({ _id: commentId }, { 
+        $pull: { "likes.users": userAddress }, 
+        $inc: { "likes.count": -1 } 
+      })
+    } else {
+      await Comment.updateOne({ _id: commentId }, { 
+        $push: { "likes.users": userAddress }, 
+        $inc: { "likes.count": 1 } 
+      })
+    }
+
+    comment = await Comment.findOne({ _id: commentId })
+    
+    return res.status(200).json({ message: 'Comment liked successfully.', comment })
   } catch (error) {
     return res.status(500).json({ code: 500, message: 'Something went wrong.' })
   }
@@ -29,7 +67,8 @@ exports.get = async (req, res) => {
   const { collectionId, tokenId } = req.params
   const query = {
     collectionId,
-    tokenId: tokenId || null
+    tokenId: tokenId || null,
+    isReply: { $in: [false, null] }
   }
 
   const total = await Comment.countDocuments(query)
