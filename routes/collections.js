@@ -212,7 +212,7 @@ router.get('/:address', async (req, res) => {
     const collection = await Collection
     .findOne({ address: req.params.address })
     .populate("comments")
-    
+
     if (!collection) return res.status(404).json({ message: 'No collection found.' })
 
     let prices = await Listing.aggregate([
@@ -426,6 +426,7 @@ router.get('/:address/token/:tokenId', async (req, res) => {
       .populate('bids')
       .populate('transfers')
       .populate('auctions')
+      .populate('comments')
       .lean()
       .exec()
     if (!token) return res.status(404).json({ message: 'No token found.' })
