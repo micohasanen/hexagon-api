@@ -1,4 +1,5 @@
 const mongoose = require("mongoose")
+const Comment = require("./Comment")
 const { sanitizeUrl } = require("../utils/base")
 
 // ABIs
@@ -126,7 +127,7 @@ const CollectionSchema = mongoose.Schema({
   },
   royaltyFee: Number,
   royaltyRecipient: String
-}, { timestamps: true })
+}, { timestamps: true, toObject: { virtuals: true }, toJSON: { virtuals: true } })
 
 
 CollectionSchema.pre('save', async function (next) {
@@ -171,6 +172,18 @@ CollectionSchema.pre('save', async function (next) {
   } catch (error) {
     console.error(error)
     next()
+  }
+})
+
+CollectionSchema.virtual("comments").get(async function () {
+  const query = {
+    collectionId: this.address,
+    tokenId: null
+  };
+
+  const total = await Comment.countDocuments(query)
+  return {
+    total
   }
 })
 

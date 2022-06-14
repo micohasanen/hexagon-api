@@ -74,7 +74,11 @@ exports.get = async (req, res) => {
   const total = await Comment.countDocuments(query)
   const comments = await Comment.find(query)
   .limit(size).skip(page * size)
-  .populate('replies user')
+  .populate('user')
+  .populate({
+    path: 'replies',
+    populate: { path: 'user' }
+  })
   .exec()
 
   return res.status(200).json({ page, size, total, results: comments })

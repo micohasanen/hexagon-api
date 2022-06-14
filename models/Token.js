@@ -1,5 +1,6 @@
 const mongoose = require("mongoose")
 const { addMetadata } = require("../queue/Queue")
+const Comment = require("./Comment")
 
 const TokenSchema = mongoose.Schema({
   tokenId: {
@@ -127,6 +128,18 @@ TokenSchema.virtual('tokenCollection', {
   foreignField: 'address',
   justOne: true
 })
+
+TokenSchema.virtual('comments').get(async function () {
+  const query = {
+    collectionId: this.collectionId,
+    tokenId: this.tokenId,
+  };
+
+  const total = await Comment.countDocuments(query)
+  return {
+    total
+  }
+});
 
 TokenSchema.index({ name: 'text' })
 
