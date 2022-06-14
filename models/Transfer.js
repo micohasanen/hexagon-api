@@ -55,7 +55,7 @@ TransferSchema.pre('save', async function(next) {
   if (this.blockNumber) this.blockNumber = parseInt(this.blockNumber)
   if (this.blockNumber && !this.blockTimestamp) {
     if (this.chain) {
-      const { Provider } = GetProvider(this.chain)
+      const { Provider } = await GetProvider(this.chain)
       const details = await Provider.eth.getBlock(this.blockNumber)
       if (details) this.blockTimestamp = new Date(details.timestamp * 1000).toISOString()
     }

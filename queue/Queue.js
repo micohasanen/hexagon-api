@@ -6,7 +6,10 @@ const { nanoid } = require("nanoid")
 const transferQueue = new Queue('transfers', { connection: config.redisConnection })
 new QueueScheduler('transfers', { connection: config.redisConnection })
 
-const metadataQueue = new Queue('metadata',  { connection: config.redisConnection })
+const metadataQueue = new Queue('metadata',  { 
+  connection: config.redisConnection,
+  defaultJobOptions: { removeOnComplete: true, removeOnFail: 1000 }
+})
 
 new QueueScheduler('rarity', { connection: config.redisConnection })
 const rarityQueue = new Queue('rarity', { connection: config.redisConnection })
@@ -41,7 +44,6 @@ exports.addMetadata = async (tokenIdMongo) => {
 }
 
 exports.generateRarity = async (collectionAddress) => {
-  console.log('Added collection to rarity queue', collectionAddress)
   await rarityQueue.remove(collectionAddress)
   await rarityQueue.add(nanoid(), collectionAddress, { delay: 30000, jobId: collectionAddress })
 }

@@ -1,11 +1,12 @@
 const { nanoid } = require("nanoid")
+const axios = require("axios")
 const Collection = require("../models/Collection")
 const Token = require("../models/Token")
 const Listing = require("../models/Listing")
 
-const { Moralis } = require("../utils/Moralis")
 const TokenController = require("../controllers/TokenController")
 const SendMail = require("../utils/SendMail")
+const { chainNameToId } = require("../utils/base")
 
 exports.add = async (data) => {
   try {
@@ -24,52 +25,38 @@ exports.add = async (data) => {
 
 exports.syncTokens = async (collection) => {
   try {
-    const { address, chain } = collection
-    let total = 1
-    const batchSize = 500
-    let processed = 0
-    let contractType = ''
+    const { address, chain, contractType, totalSupply } = collection
+    const chainId = chainNameToId(chain)
 
-    let cursor = ''
+    if (chainId === null) throw new Error('Could not resolve chain ID')
 
-    for (let i = 0; i < Math.ceil(total / batchSize); i++) {
-      const settings = {
-        address,
-        chain
-      }
-      if (cursor) settings.cursor = cursor
-
-      const tokenData = await Moralis.Web3API.token.getAllTokenIds(settings)
-
-      total = parseInt(tokenData.total)
-      cursor = tokenData.cursor
-
-      if (!total) return
-      console.log({ address, total, i })
-
-      for (const token of tokenData.result) {
-        const tempToken = {
-          collectionId: address,
-          tokenId: token.token_id,
-          tokenUri: token.token_uri,
-          contractType: token.contract_type,
-          metadata: JSON.parse(token.metadata)
+    const tokens = await axios.get(
+      `${process.env.COVALENT_API_URL}/${chainId}/tokens/${address}/nft_token_ids/`,
+      { 
+        params: {
+          key: process.env.COVALENT_API_KEY
         }
+      })
 
-        contractType = token.contractType
-
-        TokenController.add(tempToken)
-        processed += 1
-        if (processed === total) {
-          totalSupply = total
-          if (!collection.contractType) collection.contractType = contractType
-
-          await collection.save()
-
-          return Promise.resolve(true)
-        }
+    const items = tokens.data.data.items
+    console.log('Total items:', items.length)
+    
+    for (const item of items) {
+      const token = {
+        tokenId: item.token_id,
+        collectionId: address,
+        contractType
       }
+
+      TokenController.add(token)
     }
+
+    if (!totalSupply) {
+      collection.totalSupply = items.length
+      await collection.save()
+    }
+
+    return Promise.resolve(true)
   } catch (error) {
     return Promise.reject(error)
   }
@@ -85,7 +72,11 @@ exports.generateRarity = async (address) => {
     console.log('Rarity generation started for' , address)
     const excluded = collection.excludeFromRarity || []
 
-    const tokens = await Token.find({ collectionId: address }).exec()
+    const tokens = []
+
+    for await (const token of Token.find({ collectionId: address })) {
+      tokens.push(token)
+    }
     if (tokens.length) collection.traits = []
     const traits = collection.traits
 

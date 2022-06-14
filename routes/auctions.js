@@ -31,7 +31,7 @@ router.post("/", [
     }
 
     if (!collection.contractType) {
-      const { Provider } = GetProvider(collection.chain)
+      const { Provider } = await GetProvider(collection.chain)
       const code = Provider.eth.getCode(collection.address)
       collection.contractType = contractUtils.getContractType(code)
     }

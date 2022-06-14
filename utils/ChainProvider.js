@@ -1,28 +1,22 @@
 const Web3 = require("web3")
+const config = require("../config")
 
-const MumbaiProvider = new Web3(process.env.RPC_MUMBAI)
-const PolygonProvider = new Web3(process.env.RPC_POLYGON)
-const ETHProvider = new Web3(process.env.RPC_ETH)
-const AVAXProvider = new Web3(process.env.RPC_AVAX)
-const BSCProvider = new Web3(process.env.RPC_BSC)
-
-function getProvider (chain) {
-  switch (chain) {
-    case 'mumbai':
-      return MumbaiProvider
-    case 'polygon':
-      return PolygonProvider
-    case 'eth':
-      return ETHProvider
-    case 'avalanche':
-      return AVAXProvider
-    case 'bsc':
-      return BSCProvider
-  }
+function randomRPC (rpcs) {
+  return rpcs[Math.floor(Math.random()*rpcs.length)]
 }
 
-module.exports = (chain) => { 
+async function getProvider (chainLabel) {
+  const chain = config.chains.find((c) => c.label === chainLabel)
+  const RPC = randomRPC(chain.rpcEndpoints)
+  const web3 = new Web3(RPC)
+
+  // TODO: implement a check if endpoint is offline
+
+  return web3
+}
+
+module.exports = async (chain) => { 
   const currentChain = chain
-  const Provider = getProvider(chain)
+  const Provider = await getProvider(chain)
   return { Provider, currentChain } 
 }

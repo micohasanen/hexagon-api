@@ -2,7 +2,7 @@ const axios = require("axios")
 const mongoose = require("mongoose")
 const { addMetadata, generateRarity, updateCollectionPrices } = require("../queue/Queue")
 const { nanoid } = require("nanoid")
-const { Moralis } = require("../utils/Moralis")
+const PinataUpload = require("../utils/PinataUpload")
 const crypto = require("crypto")
 
 // ABIs
@@ -37,7 +37,7 @@ async function updateBalances (data) {
   let owner = data.toAddress
   
   try {
-    const { Provider } = GetProvider(data.chain)
+    const { Provider } = await GetProvider(data.chain)
     const abi = data.contractType === 'ERC1155' ? ABI_ERC1155 : ABI_ERC721
     const contract = new Provider.eth.Contract(abi, data.tokenAddress)
 
@@ -106,7 +106,7 @@ exports.isOwnerOfToken = async (collectionAddress, userAddress, tokenId, qty) =>
     const token = await Token.findOne({ collectionId: collectionAddress, tokenId }).populate('tokenCollection').exec()
     if (!token || !token.tokenCollection) return { owner: '', status: false }
 
-    const { Provider } = GetProvider(token.tokenCollection.chain)
+    const { Provider } = await GetProvider(token.tokenCollection.chain)
     const code = await Provider.eth.getCode(collectionAddress)
 
     const contractType = contractUtils.getContractType(code)
@@ -176,7 +176,7 @@ exports.refreshMetadata = async function (id) {
     const token = await Token.findOne({ _id: id }).populate('tokenCollection').exec()
     if (!token || !token.tokenCollection) throw new Error('No token found.')
 
-    const { Provider } = GetProvider(token.tokenCollection.chain)
+    const { Provider } = await GetProvider(token.tokenCollection.chain)
     let tokenUri = ''
 
     if (!token.contractType) {
@@ -194,12 +194,9 @@ exports.refreshMetadata = async function (id) {
       const contract = new Provider.eth.Contract(ABI_ERC1155, token.collectionId)
       tokenUri = await contract.methods.uri(token.tokenId).call()
 
-      console.log(tokenUri)
-
       if (tokenUri.includes('{id}')) {
         tokenUri = tokenUri.replace('{id}', toTwosComplement(token.tokenId))
       }
-      console.log("ERC1155 Token URI", tokenUri)
     }
 
     console.log('Refreshing metadata for token', token.tokenId)
@@ -212,7 +209,7 @@ exports.refreshMetadata = async function (id) {
 
       if (tokenUri.startsWith('https://')) {
         fetched = await axios.get(tokenUri)
-      } else {
+      } else { // Support for on-chain metadata
         const json = Buffer.from(tokenUri.split(',')[1], 'base64').toString('utf8')
         fetched = { data: JSON.parse(json) }
       }
@@ -241,10 +238,8 @@ exports.refreshMetadata = async function (id) {
             }
   
             const buffer = Buffer.from(image)
-            const upload = new Moralis.File(`hexagon_${nanoid()}.jpg`, Array.from(buffer))
-            await upload.saveIPFS({ useMasterKey: true })
-            const hash = upload.hash()
-            token.imageHosted = `ipfs://${hash}`
+            const { IpfsHash } = await PinataUpload({ data: buffer })
+            token.imageHosted = `ipfs://${IpfsHash}`
           }
         }
 
@@ -255,8 +250,9 @@ exports.refreshMetadata = async function (id) {
           token.traits = fetched.data.attributes
           let totalRarity = 0
           token.traits.forEach((trait) => {
-            if (!token.tokenCollection.traits?.length) return
-            const type = token.tokenCollection.traits.find((t) => t.type === trait.trait_type)
+            const collectionTraits = token.tokenCollection.traits || []
+            const type = collectionTraits.find((t) => t.type === trait.trait_type)
+
             if (!type) {
               generateRarity(token.collectionId.toLowerCase())
               return

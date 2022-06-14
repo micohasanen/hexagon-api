@@ -22,7 +22,7 @@ const GetProvider = require("../utils/ChainProvider")
 const { isExpired } = require("../utils/base")
 
 async function checkBalance(chain, currency, user) { // Supports ERC20
-  const { Provider } = GetProvider(chain)
+  const { Provider } = await GetProvider(chain)
   const contract = new Provider.eth.Contract(ABI_ERC20, currency)
 
   const balance = await contract.methods.balanceOf(user).call()
