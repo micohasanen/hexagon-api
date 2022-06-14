@@ -37,7 +37,7 @@ module.exports = {
       { label: 'bsc', id: 56, rpcEndpoints: [process.env.RPC_BSC] },
       { label: 'fantom', id: 250, rpcEndpoints: [process.env.RPC_FTM] },
       { label: 'arbitrum', id: 42161, rpcEndpoints: ['https://rpc.ankr.com/arbitrum', 'https://arb1.arbitrum.io/rpc', 'https://arbitrum.public-rpc.com'] },
-      { label: 'cronos', id: 25, rpcEndpoints: ['https://rpc.cronos.org/', 'https://rest.cronos.org/', 'https://grpc.cronos.org/', 'https://evm.cronos.org/'] },
+      { label: 'cronos', id: 25, rpcEndpoints: ['https://evm.cronos.org/', 'https://evm-cronos.crypto.org'] },
       { label: 'mumbai', id: 80001, testnet: true, rpcEndpoints: [process.env.RPC_MUMBAI] }
   ]
 }
