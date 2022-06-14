@@ -2,8 +2,8 @@ const Comment = require("../models/Comment")
 const  ObjectID = require('mongodb').ObjectId;
 
 exports.add = async (req, res) => {
-  const { collectionId, tokenId, message,replyTo, userAddress } = req.body
-  //const userAddress = req.user.address
+  const { collectionId, tokenId, message,replyTo } = req.body
+  const userAddress = req.user.address
 
   
   try {
@@ -16,9 +16,7 @@ exports.add = async (req, res) => {
     })
 
     let commentSaved = await comment.save()
-   // console.log(commentSaved)
-   // console.log(commentSaved.id)
-   // console.log(commentSaved._id)
+
     if(replyTo) {
         const originalComment = await Comment.findOne({_id: ObjectID(replyTo)})
       if (!originalComment) throw new Error('No Comment found')
@@ -31,6 +29,34 @@ exports.add = async (req, res) => {
   }
 }
 
+exports.like = async (req, res) => {
+  const { commentId } = req.body
+  const userAddress = req.user.address
+
+try {
+  let commentLike = await Comment.findOne({ _id: ObjectID(commentId)})
+  
+  if (commentLike) {
+    let userFound = commentLike.likes.users.includes(userAddress)
+    if(userFound) {
+      await Comment.updateOne({ _id: ObjectID(commentId)}, { $pull: { "likes.users": userAddress }, $inc: { "likes.count": -1 } })
+    } else {
+      await Comment.updateOne({ _id: ObjectID(commentId)}, { $push: { "likes.users": userAddress }, $inc: { "likes.count": 1 } })
+    }
+
+  } else {
+    return res.status(500).json({ code: 500, message: 'Something went wrong.' })
+  }   
+  
+  
+  const comment = await Comment.findOne({_id: ObjectID(commentId)})
+  if (!comment) throw new Error('No Comment found')
+  
+    return res.status(200).json({ message: 'Comment like operation successfull.', comment })
+  } catch (error) {
+    return res.status(500).json({ code: 500, message: 'Something went wrong.' })
+  }
+}
 
 exports.get = async (req, res) => {
   const page = Number(req.query.page) || 0
