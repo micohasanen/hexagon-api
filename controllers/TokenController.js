@@ -171,7 +171,7 @@ exports.update = async (data) => {
 
 exports.refreshMetadata = async function (id) {
  try {
-    if (!id) throw new Error('Missing required data.')
+    if (!id || typeof id === "object") throw new Error('Missing required data.')
 
     const token = await Token.findOne({ _id: id }).populate('tokenCollection').exec()
     if (!token || !token.tokenCollection) throw new Error('No token found.')
