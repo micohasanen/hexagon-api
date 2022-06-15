@@ -126,8 +126,14 @@ const CollectionSchema = mongoose.Schema({
     default: 0
   },
   royaltyFee: Number,
-  royaltyRecipient: String
-}, { timestamps: true, toObject: { virtuals: true }, toJSON: { virtuals: true } })
+  royaltyRecipient: String,
+  comments: {
+    total: {
+      type: Number,
+      default: 0
+    }
+  }
+}, { timestamps: true })
 
 
 CollectionSchema.pre('save', async function (next) {
@@ -174,18 +180,6 @@ CollectionSchema.pre('save', async function (next) {
     next()
   }
 })
-
-// CollectionSchema.virtual("comments").get(async function () {
-//   const query = {
-//     collectionId: this.address,
-//     tokenId: null
-//   };
-
-//   const total = await Comment.countDocuments(query)
-//   return {
-//     total
-//   }
-// })
 
 CollectionSchema.index({ name: 'text' })
 

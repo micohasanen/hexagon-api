@@ -99,8 +99,14 @@ const TokenSchema = mongoose.Schema({
     count: {
      type: Number,
      default: 0
-   }
-   }
+    }
+  },
+  comments: {
+    total: {
+      type: Number,
+      default: 0
+    }
+  }
 }, { timestamps: true, toObject: { virtuals: true }, toJSON: { virtuals: true } })
 
 TokenSchema.pre('save', function (next) {
@@ -128,18 +134,6 @@ TokenSchema.virtual('tokenCollection', {
   foreignField: 'address',
   justOne: true
 })
-
-// TokenSchema.virtual('comments').get(async function () {
-//   const query = {
-//     collectionId: this.collectionId,
-//     tokenId: this.tokenId,
-//   };
-
-//   const total = await Comment.countDocuments(query)
-//   return {
-//     total
-//   }
-// });
 
 TokenSchema.index({ name: 'text' })
 

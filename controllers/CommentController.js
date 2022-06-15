@@ -1,4 +1,6 @@
 const Comment = require("../models/Comment")
+const Collection = require("../models/Collection")
+const Token = require("../models/Token")
 
 exports.add = async (req, res) => {
   const { collectionId, tokenId, message, replyTo } = req.body
@@ -21,7 +23,17 @@ exports.add = async (req, res) => {
       if (!originalComment) throw new Error('No Comment found')
 
       await Comment.updateOne({ _id: replyTo }, { $push: { replies: comment._id } })
-    } 
+    }
+
+    if (tokenId) {
+      await Token.updateOne({ tokenId, collectionId }, {
+        $inc: { "comments.total": 1 }
+      }, { upsert: true })
+    } else {
+      await Collection.updateOne({ address: collectionId}, {
+        $inc: { "comments.total": 1 }
+      }, { upsert: true })
+    }
     
     return res.status(200).json({ message: 'Comment posted successfully.', comment })
   } catch (error) {
@@ -74,11 +86,7 @@ exports.get = async (req, res) => {
   const total = await Comment.countDocuments(query)
   const comments = await Comment.find(query)
   .limit(size).skip(page * size)
-  .populate('user')
-  .populate({
-    path: 'replies',
-    populate: { path: 'user' }
-  })
+  .populate('replies user')
   .exec()
 
   return res.status(200).json({ page, size, total, results: comments })
