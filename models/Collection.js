@@ -175,17 +175,17 @@ CollectionSchema.pre('save', async function (next) {
   }
 })
 
-CollectionSchema.virtual("comments").get(async function () {
-  const query = {
-    collectionId: this.address,
-    tokenId: null
-  };
+// CollectionSchema.virtual("comments").get(async function () {
+//   const query = {
+//     collectionId: this.address,
+//     tokenId: null
+//   };
 
-  const total = await Comment.countDocuments(query)
-  return {
-    total
-  }
-})
+//   const total = await Comment.countDocuments(query)
+//   return {
+//     total
+//   }
+// })
 
 CollectionSchema.index({ name: 'text' })
 
