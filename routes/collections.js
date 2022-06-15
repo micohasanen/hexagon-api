@@ -209,7 +209,10 @@ router.get('/search', async (req, res) => {
 // Address routes
 router.get('/:address', async (req, res) => {
   try {
-    const collection = await Collection.findOne({ address: req.params.address })
+    const collection = await Collection
+    .findOne({ address: req.params.address })
+    .populate("comments")
+
     if (!collection) return res.status(404).json({ message: 'No collection found.' })
 
     let prices = await Listing.aggregate([
@@ -336,7 +339,7 @@ router.post('/:address/tokens', async (req, res) => {
       .sort(sort)
       .skip(page * size)
       .limit(size)
-      .populate('auctions')
+      .populate('auctions comments')
       .select('-traits -metadata')
       .exec()
   }
@@ -363,7 +366,7 @@ router.post('/:address/tokens', async (req, res) => {
       .limit(size - tokens.length)
       .skip(page * size)
       .sort('tokenId')
-      .populate('auctions')
+      .populate('auctions comments')
       .select('-traits -metadata')
       .exec()
 
@@ -423,6 +426,7 @@ router.get('/:address/token/:tokenId', async (req, res) => {
       .populate('bids')
       .populate('transfers')
       .populate('auctions')
+      .populate('comments')
       .lean()
       .exec()
     if (!token) return res.status(404).json({ message: 'No token found.' })
