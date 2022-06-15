@@ -99,8 +99,14 @@ const TokenSchema = mongoose.Schema({
     count: {
      type: Number,
      default: 0
-   }
-   }
+    }
+  },
+  comments: {
+    total: {
+      type: Number,
+      default: 0
+    }
+  }
 }, { timestamps: true, toObject: { virtuals: true }, toJSON: { virtuals: true } })
 
 TokenSchema.pre('save', function (next) {

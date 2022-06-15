@@ -126,8 +126,14 @@ const CollectionSchema = mongoose.Schema({
     default: 0
   },
   royaltyFee: Number,
-  royaltyRecipient: String
-}, { timestamps: true, toObject: { virtuals: true }, toJSON: { virtuals: true } })
+  royaltyRecipient: String,
+  comments: {
+    total: {
+      type: Number,
+      default: 0
+    }
+  }
+}, { timestamps: true })
 
 
 CollectionSchema.pre('save', async function (next) {
