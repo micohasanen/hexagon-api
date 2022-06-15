@@ -11,6 +11,7 @@ if (process.env.NODE_ENV === 'production') redisConnection.tls = {}
 
 module.exports = {
   redisConnection,
+  mongoConnection: `mongodb+srv://${process.env.MONGO_USER}:${process.env.MONGO_PASS}@${process.env.MONGO_URL}/${process.env.MONGO_DB_NAME}?retryWrites=true&w=majority`,
   marketplaces: {
     '80001': process.env.MARKETPLACE_MUMBAI, 
     '137': process.env.MARKETPLACE_POLYGON,
