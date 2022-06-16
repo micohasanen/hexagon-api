@@ -13,13 +13,12 @@ const ABI_ERC1155 = require("../abis/ERC1155.json")
 const Token = require("../models/Token")
 const Auction = require("../models/Auction")
 const Balance = require("../models/Balance")
-const Listing = require("../models/Listing")
 
 // Web3
 const GetProvider = require("../utils/ChainProvider")
 
 const contractUtils = require("../utils/contractType")
-const { toTwosComplement } = require("../utils/base")
+const { toTwosComplement, constructTokenURI } = require("../utils/base")
 const knownGateways = ['https://gateway.pinata.cloud/ipfs/', 'https://gateway.ipfs.io/ipfs/', 'https://gateway.moralisipfs.com/ipfs/']
 
 function resolveIpfs (path) {
@@ -106,7 +105,9 @@ exports.isOwnerOfToken = async (collectionAddress, userAddress, tokenId, qty) =>
     const token = await Token.findOne({ collectionId: collectionAddress, tokenId }).populate('tokenCollection').exec()
     if (!token || !token.tokenCollection) return { owner: '', status: false }
 
-    const { Provider } = await GetProvider(token.tokenCollection.chain)
+    const collection = token.tokenCollection
+
+    const { Provider } = await GetProvider(collection.chain)
     const code = await Provider.eth.getCode(collectionAddress)
 
     const contractType = contractUtils.getContractType(code)
@@ -176,7 +177,9 @@ exports.refreshMetadata = async function (id) {
     const token = await Token.findOne({ _id: id }).populate('tokenCollection').exec()
     if (!token || !token.tokenCollection) throw new Error('No token found.')
 
-    const { Provider } = await GetProvider(token.tokenCollection.chain)
+    const collection = token.tokenCollection
+
+    const { Provider } = await GetProvider(collection.chain)
     let tokenUri = ''
 
     if (!token.contractType) {
@@ -200,6 +203,10 @@ exports.refreshMetadata = async function (id) {
     }
 
     console.log('Refreshing metadata for token', token.tokenId)
+
+    // If no token URI is found form contract, attempt to construct from baseURI
+    if (!tokenUri && collection.baseURI) 
+      tokenUri = constructTokenURI(collection, token.tokenId)
 
     if (tokenUri) {
       if (tokenUri.startsWith('ipfs://')) tokenUri = tokenUri.replace('ipfs://', process.env.IPFS_GATEWAY)
@@ -250,7 +257,7 @@ exports.refreshMetadata = async function (id) {
           token.traits = fetched.data.attributes
           let totalRarity = 0
           token.traits.forEach((trait) => {
-            const collectionTraits = token.tokenCollection.traits || []
+            const collectionTraits = collection.traits || []
             const type = collectionTraits.find((t) => t.type === trait.trait_type)
 
             if (!type) {
@@ -276,14 +283,14 @@ exports.refreshMetadata = async function (id) {
       }
     }
 
-    if (!token.chain) token.chain = token.tokenCollection.chain
+    if (!token.chain) token.chain = collection.chain
     await token.save()
 
     this.syncAuctions(token)
     updateBalances({ 
-      chain: token.tokenCollection.chain,
+      chain: collection.chain,
       tokenAddress: token.collectionId,
-      contractType: token.tokenCollection.contractType,
+      contractType: collection.contractType,
       fromAddress: '0x0000000000000000000000000000000000000000',
       toAddress: '0x0000000000000000000000000000000000000000',
       tokenId: token.tokenId
@@ -324,19 +331,6 @@ exports.logTransfer = async (data) => {
     if (token.contractType === 'ERC721') token.owner = newOwner
     await token.save()
 
-    const listings = await Listing.find({
-      collectionId: token.contractAddress,
-      tokenId: token.tokenId,
-      userAddress: data.fromAddress,
-      active: true
-    })
-    
-    for (const listing of listings) {
-      listing.active = false
-      await listing.save()
-    }
-
- 
     if (!token.metadata || !token.imageHosted) addMetadata(token._id)
 
     return Promise.resolve(token)

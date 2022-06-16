@@ -132,7 +132,9 @@ const CollectionSchema = mongoose.Schema({
       type: Number,
       default: 0
     }
-  }
+  },
+  baseURI: String,
+  baseExtension: String
 }, { timestamps: true })
 
 
@@ -163,6 +165,14 @@ CollectionSchema.pre('save', async function (next) {
     if (!this.symbol) {
       if (contractType.hasMethod(code, contract.methods.symbol().encodeABI()))
         this.symbol = await contract.methods.symbol().call()
+    } 
+    if (!this.baseURI) {
+      if (contractType.hasMethod(code, contract.methods.baseURI().encodeABI()))
+        this.baseURI = await contract.methods.baseURI().call()
+    } 
+    if (!this.baseExtension) {
+      if (contractType.hasMethod(code, contract.methods.baseExtension().encodeABI()))
+        this.baseExtension = await contract.methods.baseExtension().call()
     } 
     // We are checking if the contract has a totalSupply method, otherwise we'll get an error
     const supplyABI = contract.methods.totalSupply().encodeABI()

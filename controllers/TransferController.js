@@ -1,6 +1,6 @@
 const Transfer = require("../models/Transfer")
 const Collection = require("../models/Collection")
-const { Moralis } = require("../utils/Moralis")
+// const { Moralis } = require("../utils/Moralis")
 const { addTransfer } = require("../queue/Queue")
 const Web3 = require("web3")
 

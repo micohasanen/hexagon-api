@@ -1,6 +1,5 @@
 const mongoose = require("mongoose")
 const TokenController = require("../controllers/TokenController")
-const Token = require("./Token")
 
 const ListingSchema = mongoose.Schema({
   contractAddress: {
