@@ -210,6 +210,7 @@ router.get('/search', async (req, res) => {
 router.get('/:address', async (req, res) => {
   try {
     const collection = await Collection.findOne({ address: req.params.address })
+
     if (!collection) return res.status(404).json({ message: 'No collection found.' })
 
     let prices = await Listing.aggregate([

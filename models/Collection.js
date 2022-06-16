@@ -1,4 +1,5 @@
 const mongoose = require("mongoose")
+const Comment = require("./Comment")
 const { sanitizeUrl } = require("../utils/base")
 
 // ABIs
@@ -125,7 +126,13 @@ const CollectionSchema = mongoose.Schema({
     default: 0
   },
   royaltyFee: Number,
-  royaltyRecipient: String
+  royaltyRecipient: String,
+  comments: {
+    total: {
+      type: Number,
+      default: 0
+    }
+  }
 }, { timestamps: true })
 
 

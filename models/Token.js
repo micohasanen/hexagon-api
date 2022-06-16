@@ -1,5 +1,6 @@
 const mongoose = require("mongoose")
 const { addMetadata } = require("../queue/Queue")
+const Comment = require("./Comment")
 
 const TokenSchema = mongoose.Schema({
   tokenId: {
@@ -98,8 +99,14 @@ const TokenSchema = mongoose.Schema({
     count: {
      type: Number,
      default: 0
-   }
-   }
+    }
+  },
+  comments: {
+    total: {
+      type: Number,
+      default: 0
+    }
+  }
 }, { timestamps: true, toObject: { virtuals: true }, toJSON: { virtuals: true } })
 
 TokenSchema.pre('save', function (next) {
