@@ -1,4 +1,5 @@
 require("dotenv").config()
+const config = require("./config")
 const PORT = process.env.PORT || 5000
 
 const express = require("express")
@@ -9,6 +10,7 @@ const helmet = require("helmet")
 const xss = require("xss-clean")
 const rateLimiter = require("./middleware/RateLimiter")
 const fileupload = require("express-fileupload")
+const { initAgenda } = require("./providers/Agenda")
 
 const app = express()
 app.use(cors())
@@ -23,8 +25,8 @@ app.use(fileupload({
 }))
 
 
-mongoose.connect(
-  `mongodb+srv://${process.env.MONGO_USER}:${process.env.MONGO_PASS}@${process.env.MONGO_URL}/${process.env.MONGO_DB_NAME}?retryWrites=true&w=majority`)
+mongoose.connect(config.mongoConnection)
+initAgenda()
 
 app.get("/", (req, res) =>
 {

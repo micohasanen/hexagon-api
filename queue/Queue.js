@@ -48,21 +48,6 @@ exports.generateRarity = async (collectionAddress) => {
   await rarityQueue.add(nanoid(), collectionAddress, { delay: 30000, jobId: collectionAddress })
 }
 
-exports.expireListing = async (id, expiry) => {
-  const delay = calculateDelay(expiry)
-  await listingsQueue.add(nanoid(), { eventType: 'expiry', id }, { delay })
-}
-
-exports.expireBid = async (id, expiry) => {
-  const delay = calculateDelay(expiry)
-  await bidsQueue.add(nanoid(), { eventType: 'expiry', id }, { delay })
-}
-
-exports.expireAuction = async (id, expiry) => {
-  const delay = calculateDelay(expiry)
-  await auctionsQueue.add(nanoid(), { eventType: 'expiry', id }, { delay })
-}
-
 exports.updateCollectionPrices = async (address) => {
  await priceQueue.add(nanoid(), { address })
 }

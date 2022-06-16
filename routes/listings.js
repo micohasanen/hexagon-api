@@ -1,6 +1,6 @@
 const router = require("express").Router()
 const { body, validationResult } = require("express-validator")
-const { expireListing } = require("../queue/Queue")
+const { scheduleJob } = require("../providers/Agenda")
 
 // Models
 const Listing = require("../models/Listing")
@@ -41,8 +41,6 @@ router.post("/", [
     const token = await Token.findOne({ collectionId: address, tokenId: req.body.tokenId }).populate('listings', { 'active': 1, '_id': 1 })
     if (!collection || !token) return res.status(400).json({ message: 'Invalid token or collection ID.'})
 
-    console.log(collection)
-
     if (collection.minPrice && collection.minPrice > Number(req.body.pricePerItem)) {
       return res.status(400).json({ message: 'Price must be more than minimum price.' })
     }
@@ -62,7 +60,7 @@ router.post("/", [
     listing.active = true
     await listing.save() // -> After Save, updates to token listings
 
-    expireListing(listing._id, listing.expiry)
+    scheduleJob(new Date(listing.expiry * 1000 + 20000), 'expire_listing', { id: listing._id })
 
     return res.status(200).send(listing)
   } catch (error) {

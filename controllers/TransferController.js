@@ -22,7 +22,7 @@ exports.syncTransfers = async (address) => {
   }
 }
 
-// Commented to prevent use of Moralis
+// Please, remove Moralis from my life
 // exports.syncCollectionTransfers = async (address) => {
 //   try {
 //     if (!address) throw new Error('Missing collection address.')

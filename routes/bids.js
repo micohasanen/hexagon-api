@@ -1,6 +1,6 @@
 const router = require("express").Router()
 const { body, validationResult, check } = require("express-validator")
-const { expireBid } = require("../queue/Queue")
+const { scheduleJob } = require("../providers/Agenda")
 const ABI_ERC20 = require("../abis/ERC20.json")
 
 // Models
@@ -105,7 +105,7 @@ router.post("/", [
     await bid.save()
 
     sendNotification(bid)
-    expireBid(bid._id, bid.expiry)
+    scheduleJob(new Date(bid.expiry * 1000 + 20000), 'expire_bid', { id: bid._id })
 
     res.status(200).send(bid)
   } catch (error) {
