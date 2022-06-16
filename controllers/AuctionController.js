@@ -1,6 +1,7 @@
 const Auction = require("../models/Auction")
-const { expireAuction } = require("../queue/Queue")
 const Sale = require("../models/Sale")
+
+const { scheduleJob } = require("../providers/Agenda")
 
 // Controllers
 const NotificationController = require("../controllers/NotificationController")
@@ -31,7 +32,7 @@ exports.startAuction = async (data) => {
 
     await auction.save()
 
-    expireAuction(auction._id, auction.expiry)
+    scheduleJob(new Date(auction.expiry * 1000 + 20000), 'expire_auction', { id: auction._id })
     syncAuctions(auction)
 
     return Promise.resolve(true)

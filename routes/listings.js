@@ -1,6 +1,6 @@
 const router = require("express").Router()
 const { body, validationResult } = require("express-validator")
-const { expireListing } = require("../queue/Queue")
+const { scheduleJob } = require("../providers/Agenda")
 
 // Models
 const Listing = require("../models/Listing")
@@ -62,7 +62,7 @@ router.post("/", [
     listing.active = true
     await listing.save() // -> After Save, updates to token listings
 
-    expireListing(listing._id, listing.expiry)
+    scheduleJob(new Date(listing.expiry * 1000 + 20000), 'expire_listing', { id: listing._id })
 
     return res.status(200).send(listing)
   } catch (error) {
