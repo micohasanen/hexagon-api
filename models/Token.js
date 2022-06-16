@@ -121,6 +121,8 @@ TokenSchema.pre('save', function (next) {
 })
 
 TokenSchema.post('find', function (results) {
+  if (process.env.NODE_ENV !== 'production') return
+  
   results.forEach((result) => {
     if (!result.imageHosted) {
       addMetadata(result._id)

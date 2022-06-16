@@ -1,6 +1,6 @@
 const Transfer = require("../models/Transfer")
 const Collection = require("../models/Collection")
-const { Moralis } = require("../utils/Moralis")
+// const { Moralis } = require("../utils/Moralis")
 const { addTransfer } = require("../queue/Queue")
 const Web3 = require("web3")
 
@@ -22,46 +22,47 @@ exports.syncTransfers = async (address) => {
   }
 }
 
-exports.syncCollectionTransfers = async (address) => {
-  try {
-    if (!address) throw new Error('Missing collection address.')
+// Commented to prevent use of Moralis
+// exports.syncCollectionTransfers = async (address) => {
+//   try {
+//     if (!address) throw new Error('Missing collection address.')
 
-    const collection = await Collection.findOne({ address }).exec()
-    if (!collection) throw new Error('No collection found.')
+//     const collection = await Collection.findOne({ address }).exec()
+//     if (!collection) throw new Error('No collection found.')
 
-    let total = 1000
-    const batchSize = 500
-    let cursor = ''
+//     let total = 1000
+//     const batchSize = 500
+//     let cursor = ''
 
-    for (let i = 0; i <= total; i += batchSize) {
-      const settings = {
-        address,
-        chain: collection.chain
-      }
-      if (cursor) settings.cursor = cursor
+//     for (let i = 0; i <= total; i += batchSize) {
+//       const settings = {
+//         address,
+//         chain: collection.chain
+//       }
+//       if (cursor) settings.cursor = cursor
 
-      const transfers = await Moralis.Web3API.token.getContractNFTTransfers(settings)
+//       const transfers = await Moralis.Web3API.token.getContractNFTTransfers(settings)
 
-      cursor = transfers.cursor
+//       cursor = transfers.cursor
 
-      total = parseInt(transfers.total)
-      console.log({ total, i })
+//       total = parseInt(transfers.total)
+//       console.log({ total, i })
     
-      for (const result of transfers.result) {
-        const formatted = { chain: collection.chain }
-        Object.entries(result).forEach(([key, val]) => {
-          formatted[snakeToCamel(key)] = val
-        })
-        addTransfer(formatted)
-      }
-    }
+//       for (const result of transfers.result) {
+//         const formatted = { chain: collection.chain }
+//         Object.entries(result).forEach(([key, val]) => {
+//           formatted[snakeToCamel(key)] = val
+//         })
+//         addTransfer(formatted)
+//       }
+//     }
 
-    return Promise.resolve(true)
-  } catch (error) {
-    console.error(error.message)
-    return Promise.reject(error)
-  }
-}
+//     return Promise.resolve(true)
+//   } catch (error) {
+//     console.error(error.message)
+//     return Promise.reject(error)
+//   }
+// }
 
 exports.add = async (data) => {
   try {
