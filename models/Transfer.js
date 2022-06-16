@@ -1,7 +1,7 @@
 const mongoose = require("mongoose")
 const TokenController = require("../controllers/TokenController")
 const GetProvider = require("../utils/ChainProvider")
-const { addMetadata } = require("../queue/Queue")
+const Listing = require("./Listing")
 
 const TransferSchema = mongoose.Schema({
   blockTimestamp: {
@@ -64,9 +64,23 @@ TransferSchema.pre('save', async function(next) {
   next()
 })
 
-TransferSchema.post('save', function() {
+TransferSchema.post('save', async function () {
   console.log("Transfer Saved for", this.tokenId)
   TokenController.logTransfer(this)
+
+  // Remove all listings on transfer
+  const listings = await Listing.find({
+    collectionId: this.tokenAddress,
+    tokenId: this.tokenId,
+    userAddress: this.fromAddress,
+    active: true
+  })
+  
+  for (const listing of listings) {
+    console.log(listing)
+    listing.active = false
+    await listing.save()
+  }
 })
 
 module.exports = mongoose.model('Transfer', TransferSchema)
