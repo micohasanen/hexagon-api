@@ -41,8 +41,6 @@ router.post("/", [
     const token = await Token.findOne({ collectionId: address, tokenId: req.body.tokenId }).populate('listings', { 'active': 1, '_id': 1 })
     if (!collection || !token) return res.status(400).json({ message: 'Invalid token or collection ID.'})
 
-    console.log(collection)
-
     if (collection.minPrice && collection.minPrice > Number(req.body.pricePerItem)) {
       return res.status(400).json({ message: 'Price must be more than minimum price.' })
     }
