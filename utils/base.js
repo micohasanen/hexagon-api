@@ -26,3 +26,10 @@ exports.chainNameToId = (name) => {
   const chain = config.chains.find((ch) => ch.label === name)
   return chain?.id ? chain.id : null
 }
+
+exports.constructTokenURI = ({ baseURI, baseExtension }, tokenId) => {
+  let str = `${baseURI}/${tokenId}`
+  if (baseExtension) str += baseExtension
+
+  return str
+}

@@ -19,7 +19,7 @@ const Listing = require("../models/Listing")
 const GetProvider = require("../utils/ChainProvider")
 
 const contractUtils = require("../utils/contractType")
-const { toTwosComplement } = require("../utils/base")
+const { toTwosComplement, constructTokenURI } = require("../utils/base")
 const knownGateways = ['https://gateway.pinata.cloud/ipfs/', 'https://gateway.ipfs.io/ipfs/', 'https://gateway.moralisipfs.com/ipfs/']
 
 function resolveIpfs (path) {
@@ -106,7 +106,9 @@ exports.isOwnerOfToken = async (collectionAddress, userAddress, tokenId, qty) =>
     const token = await Token.findOne({ collectionId: collectionAddress, tokenId }).populate('tokenCollection').exec()
     if (!token || !token.tokenCollection) return { owner: '', status: false }
 
-    const { Provider } = await GetProvider(token.tokenCollection.chain)
+    const collection = token.tokenCollection
+
+    const { Provider } = await GetProvider(collection.chain)
     const code = await Provider.eth.getCode(collectionAddress)
 
     const contractType = contractUtils.getContractType(code)
@@ -176,7 +178,9 @@ exports.refreshMetadata = async function (id) {
     const token = await Token.findOne({ _id: id }).populate('tokenCollection').exec()
     if (!token || !token.tokenCollection) throw new Error('No token found.')
 
-    const { Provider } = await GetProvider(token.tokenCollection.chain)
+    const collection = token.tokenCollection
+
+    const { Provider } = await GetProvider(collection.chain)
     let tokenUri = ''
 
     if (!token.contractType) {
@@ -200,6 +204,10 @@ exports.refreshMetadata = async function (id) {
     }
 
     console.log('Refreshing metadata for token', token.tokenId)
+
+    // If no token URI is found form contract, attempt to construct from baseURI
+    if (!tokenUri && collection.baseURI) 
+      tokenUri = constructTokenURI(collection, token.tokenId)
 
     if (tokenUri) {
       if (tokenUri.startsWith('ipfs://')) tokenUri = tokenUri.replace('ipfs://', process.env.IPFS_GATEWAY)
@@ -250,7 +258,7 @@ exports.refreshMetadata = async function (id) {
           token.traits = fetched.data.attributes
           let totalRarity = 0
           token.traits.forEach((trait) => {
-            const collectionTraits = token.tokenCollection.traits || []
+            const collectionTraits = collection.traits || []
             const type = collectionTraits.find((t) => t.type === trait.trait_type)
 
             if (!type) {
@@ -276,14 +284,14 @@ exports.refreshMetadata = async function (id) {
       }
     }
 
-    if (!token.chain) token.chain = token.tokenCollection.chain
+    if (!token.chain) token.chain = collection.chain
     await token.save()
 
     this.syncAuctions(token)
     updateBalances({ 
-      chain: token.tokenCollection.chain,
+      chain: collection.chain,
       tokenAddress: token.collectionId,
-      contractType: token.tokenCollection.contractType,
+      contractType: collection.contractType,
       fromAddress: '0x0000000000000000000000000000000000000000',
       toAddress: '0x0000000000000000000000000000000000000000',
       tokenId: token.tokenId
