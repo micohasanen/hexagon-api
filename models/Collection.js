@@ -133,6 +133,12 @@ const CollectionSchema = mongoose.Schema({
       default: 0
     }
   },
+  likes: {
+    count: {
+     type: Number,
+     default: 0
+    }
+  },
   baseURI: String,
   baseExtension: String
 }, { timestamps: true })
