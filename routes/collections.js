@@ -18,6 +18,7 @@ const Balance = require("../models/Balance")
 const Transfer = require("../models/Transfer")
 const Auction = require("../models/Auction")
 const TokenLike = require("../models/TokenLike")
+const CollectionLike = require("../models/CollectionLike")
 
 // Controllers
 const TokenController = require("../controllers/TokenController")
@@ -447,24 +448,33 @@ router.get('/:collectionId/comments', CommentController.get)
 router.get('/:collectionId/tokens/:tokenId/comments', CommentController.get)
 
 router.get('/:collectionId/tokens/:tokenId/likes', async (req, res) => {
-
   try {
-
     if (!req.params.collectionId) return res.status(400).json({ message: 'Missing Collection ID Parameter..' })
-    if (!req.params.tokenId) return res.status(400).json({ message: 'Missing TokenID Parameter..' })
+    if (!req.params.tokenId) return res.status(400).json({ message: 'Missing TokenID Parameter.' })
 
     let collectionId = req.params.collectionId
     let tokenId = req.params.tokenId
-    const tokenLikes = await TokenLike.find({ collectionId: collectionId, tokenId: tokenId }).exec()
+    const tokenLikes = await TokenLike.find({ collectionId, tokenId }).exec()
 
     res.status(200).json({ results: tokenLikes, count: tokenLikes.length })
-
-
 
   } catch (error) {
     return res.status(500).json({ message: 'Something went wrong.', error })
   }
+})
 
+router.get('/:collectionId/likes', async (req, res) => {
+  try {
+    if (!req.params.collectionId) return res.status(400).json({ message: 'Missing Collection ID Parameter.' })
+
+    const collectionId = req.params.collectionId
+    const collectionLikes = await CollectionLike.find({ collectionId }).exec()
+
+    res.status(200).json({ results: collectionLikes, count: collectionLikes.length })
+
+  } catch (error) {
+    return res.status(500).json({ message: 'Something went wrong.', error })
+  }
 })
 
 
@@ -504,6 +514,46 @@ router.post('/:collectionId/tokens/:tokenId/likes', [
 
 
 })
+
+router.post('/:collectionId/likes', [
+  extractUser
+], async (req, res) => {
+
+
+  try {
+    const data = { collectionId } = req.params
+    data.userAddress = req.user.address
+
+    let like = await CollectionLike.exists(data)
+    if (like) {
+      await CollectionLike.deleteOne(data)
+      
+      await Collection.updateOne({ address: collectionId}, {
+        $inc: { "likes.count": -1 }
+      })
+
+      return res.status(204).json({ message: 'Like removed.' })
+
+    } else {
+      like = new CollectionLike(data)
+      await like.save()
+
+      await Collection.updateOne({ address: collectionId}, {
+        $inc: { "likes.count": 1 }
+      })
+
+    }
+
+    return res.status(200).json({ message: 'OK', like })
+
+  } catch (error) {
+    console.error(error)
+    return res.status(500).json({ code: 500, message: 'Something went wrong.' })
+  }
+
+
+})
+
 
 router.get('/:address/token/:tokenId/activity', async (req, res) => {
   try {
