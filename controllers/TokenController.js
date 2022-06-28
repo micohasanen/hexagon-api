@@ -214,7 +214,7 @@ exports.refreshMetadata = async function (id) {
 
       let fetched
 
-      if (tokenUri.startsWith('https://')) {
+      if (tokenUri.startsWith('https://') || tokenUri.startsWith('http://')) {
         fetched = await axios.get(tokenUri)
       } else { // Support for on-chain metadata
         const json = Buffer.from(tokenUri.split(',')[1], 'base64').toString('utf8')
@@ -237,7 +237,7 @@ exports.refreshMetadata = async function (id) {
           } else {
             let image
 
-            if (fetched.data.image.startsWith('https://')) {
+            if (fetched.data.image.startsWith('https://') || fetched.data.image.startsWith('http://')) {
               const imageReq = await axios.get(resolveIpfs(fetched.data.image), { responseType: 'arraybuffer' })
               image = imageReq.data
             } else {
