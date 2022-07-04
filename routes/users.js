@@ -15,6 +15,7 @@ const Listing = require("../models/Listing")
 const Bid = require("../models/Bid")
 
 const TokenLike = require("../models/TokenLike")
+const UserMessageKey = require("../models/UserMessageKey")
 
 // Middleware
 const { extractUser } = require("../middleware/VerifySignature")
@@ -422,6 +423,32 @@ router.post('/me', [extractUser], async (req, res) => {
     const user = await User.findOneAndUpdate({ address: req.user.address }, { ...req.body }, { upsert: true, new: true })
 
     return res.status(200).send(user)
+  } catch (error) {
+    return res.status(500).json({ message: 'Something went wrong.', error })
+  }
+})
+
+router.get('/messages/pre-key', [extractUser], async (req, res) => {
+  try {
+    if (!req.user?.address) return res.status(400).json({ message: 'Missing required parameters.' })
+
+    const preKeyBundle = await UserMessageKey.findOne({ userAddress: req.user.address })
+    return res.status(200).send(preKeyBundle)
+  } catch (error) {
+    return res.status(500).json({ message: 'Something went wrong.', error })
+  }
+})
+
+router.post('/messages/pre-key', [extractUser], async (req, res) => {
+  try {
+    if (!req.user?.address || !req.body) return res.status(400).json({ message: 'Missing required parameters.' })
+
+    const userKeyBundle = new UserMessageKey();
+    userKeyBundle.userAddress = req.user.address;
+    userKeyBundle.preKeyBundle = req.body;
+    await userKeyBundle.save();
+
+    return res.status(200).send(userKeyBundle)
   } catch (error) {
     return res.status(500).json({ message: 'Something went wrong.', error })
   }
