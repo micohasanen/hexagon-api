@@ -36,6 +36,19 @@ module.exports = () => {
     }
   })
 
+  // Process new Metadata refresh request Periodic
+  const metadataWorkerPeriodic = new Worker('metadataPeriodic', 
+  async (job) => {
+    await TokenController.refreshMetadata(job.data)
+    return true
+  }, { 
+    connection: config.redisConnection,
+    limiter: {
+      max: 10,
+      duration: 1000
+    }
+  })
+
   // Process new batch reveal 
   const rarityWorker = new Worker('rarity', 
   async (job) => {

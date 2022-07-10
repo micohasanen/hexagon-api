@@ -1,6 +1,6 @@
 const axios = require("axios")
 const mongoose = require("mongoose")
-const { addMetadata, generateRarity, updateCollectionPrices } = require("../queue/Queue")
+const { addMetadata, generateRarity, updateCollectionPrices, addMetadataPeriodic } = require("../queue/Queue")
 const { nanoid } = require("nanoid")
 const PinataUpload = require("../utils/PinataUpload")
 const crypto = require("crypto")
@@ -13,6 +13,7 @@ const ABI_ERC1155 = require("../abis/ERC1155.json")
 const Token = require("../models/Token")
 const Auction = require("../models/Auction")
 const Balance = require("../models/Balance")
+const Error = require("../models/Error")
 
 // Web3
 const GetProvider = require("../utils/ChainProvider")
@@ -152,6 +153,36 @@ exports.add = async (data) => {
   }
 }
 
+// Duplicated the add on TokenController to make this periodic job customizable, 
+// so that if we change something on config or on BullMQ part, it will NOT affect the normal functions.
+// There is a difference on this duplicated part. If the token is already saved, it will not Pass it but it will check the metadata of the token. 
+// If the metadata of the token is null, it will call refreshMetaData function
+exports.addPeriodic = async (data) => {
+  try {
+    if (!data.collectionId || !data.tokenId) throw new Error('Missing required data.')
+
+    // Prevent multiple token ids within the same collection to be stored in the db
+    const tokenHash = crypto.createHash('sha256').update(`${data.collectionId.toLowerCase()}:${data.tokenId}`).digest('hex')
+
+    let token = await Token.findOne({ collectionId: data.collectionId, tokenId: data.tokenId })
+    if (!token) {
+      token = new Token({ ...data, tokenHash })
+      await token.save()
+
+      
+      addMetadataPeriodic(token._id)
+    } else {
+      if(token.metadata == null) {
+     addMetadataPeriodic(token._id)
+      }
+    }
+
+    return Promise.resolve(token)
+  } catch (error) {
+    return Promise.reject(error)
+  }
+}
+
 exports.update = async (data) => {
   try {
     if (!data.collectionId || !data.tokenId) throw new Error('Missing required data.')
@@ -169,6 +200,7 @@ exports.update = async (data) => {
     return Promise.reject(error)
   }
 }
+
 
 exports.refreshMetadata = async function (id) {
  try {
@@ -299,6 +331,12 @@ exports.refreshMetadata = async function (id) {
     return Promise.resolve(token)
  } catch (error) {
     console.error(error)
+    // Added a mechanism to log the errors to MongoDB for a while to see what kind of errors do we get on this one. 
+    // It can be useful for a while to see how different exceptions we get so that we minimize the Bugs.
+    const tokenTemp = await Token.findOne({ _id: id }).populate('tokenCollection').exec()
+    let errorToken = new Error({ error: error, collectionId: tokenTemp.collectionId, tokenId: tokenTemp.tokenId,sourceId : id })
+    await errorToken.save()
+
     return Promise.reject(error)
   }
 }

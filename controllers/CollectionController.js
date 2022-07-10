@@ -62,6 +62,48 @@ exports.syncTokens = async (collection) => {
   }
 }
 
+// Duplicated the syncTokens on CollectionController to make this periodic job customizable, 
+// so that if we change something on config or on BullMQ part, it will NOT affect the normal functions.
+
+exports.syncTokensPeriodic = async (collection) => {
+  try {
+    const { address, chain, contractType, totalSupply } = collection
+    const chainId = chainNameToId(chain)
+
+    if (chainId === null) throw new Error('Could not resolve chain ID')
+
+    const tokens = await axios.get(
+      `${process.env.COVALENT_API_URL}/${chainId}/tokens/${address}/nft_token_ids/`,
+      { 
+        params: {
+          key: process.env.COVALENT_API_KEY
+        }
+      })
+
+    const items = tokens.data.data.items
+    console.log('Total items:', items.length)
+    
+    for (const item of items) {
+      const token = {
+        tokenId: item.token_id,
+        collectionId: address,
+        contractType
+      }
+
+      TokenController.addPeriodic(token)
+    }
+
+    if (!totalSupply) {
+      collection.totalSupply = items.length
+      await collection.save()
+    }
+
+    return Promise.resolve(true)
+  } catch (error) {
+    return Promise.reject(error)
+  }
+}
+
 // Using Rarity Score Method, as described here:
 // https://raritytools.medium.com/ranking-rarity-understanding-rarity-calculation-methods-86ceaeb9b98c
 exports.generateRarity = async (address) => {

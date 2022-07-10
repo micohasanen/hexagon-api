@@ -9,8 +9,26 @@ const TokenController = require("../controllers/TokenController")
 const Auction = require("../models/Auction")
 const Collection = require("../models/Collection")
 const { syncRecentCollectionTransfers } = require("../controllers/TransferController")
+const CollectionController = require("../controllers/CollectionController")
 
 
+// Scheduled Agenda Job for Syncing whitelisted Collections' Tokens'. 
+// This Function will Save Newly Minted Tokens and also Refresh Tokens with metadata objects are null
+
+agenda.define('SyncCollectionsPeriodic', async (job) => {
+  console.log("Process Started: "+new Date())
+  const collections = await Collection.find({ 
+    whitelisted: true,
+    pending: false
+  })
+  
+  for (const collection of collections) {
+   await CollectionController.syncTokensPeriodic(collection)
+  }
+ console.log("Process Ended: "+new Date()+"|"+"Total Collection Count:"+collections.length)
+
+
+ })
 
 agenda.define('SyncRecentTransfers', async (job) => {
  console.log("Process Started: "+new Date())
@@ -65,6 +83,9 @@ exports.initAgenda = async () => {
   console.log('Agenda Inited')
 
   await agenda.every("60 minutes", "SyncRecentTransfers");
+
+  // Scheduled for every 10 hours
+  await agenda.every("600 minutes", "SyncCollectionsPeriodic");
 
 }
 
