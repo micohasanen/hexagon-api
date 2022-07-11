@@ -34,6 +34,7 @@
     "parse-duration": "^1.0.2",
     "pm2": "^5.2.0",
     "rate-limiter-flexible": "^2.3.7",
+    "socket.io": "^4.5.1",
     "web3": "^1.7.3",
     "web3-token": "^0.2.9",
     "xss-clean": "^0.1.1"
