@@ -8,6 +8,12 @@ const ChatSchema = new Schema({
     lowercase: true,
     trim: true
   }],
+  creatorId: {
+    type: String, 
+    required: true,
+    lowercase: true,
+    trim: true
+  },
   messages: [{ type: Schema.Types.ObjectId, ref: 'ChatMessage' }]
 }, { timestamps: true, toObject: { virtuals: true }, toJSON: { virtuals: true } })
 
