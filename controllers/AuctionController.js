@@ -129,6 +129,7 @@ exports.expire = async (id) => {
 
     const now = new Date().getTime() / 1000
     if (auction.expiry <= now) {
+      auction.active = false
       auction.ended = true
       await auction.save()
 
