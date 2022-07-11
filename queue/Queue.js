@@ -11,6 +11,11 @@ const metadataQueue = new Queue('metadata',  {
   defaultJobOptions: { removeOnComplete: true, removeOnFail: 1000 }
 })
 
+const metadataQueuePeriodic = new Queue('metadataPeriodic',  { 
+  connection: config.redisConnection,
+  defaultJobOptions: { removeOnComplete: true, removeOnFail: 1000 }
+})
+
 new QueueScheduler('rarity', { connection: config.redisConnection })
 const rarityQueue = new Queue('rarity', { connection: config.redisConnection })
 
@@ -40,8 +45,13 @@ exports.addTransfer = async (data) => {
 }
 
 exports.addMetadata = async (tokenIdMongo) => {
- await metadataQueue.add(nanoid(), tokenIdMongo)
-}
+  await metadataQueue.add(nanoid(), tokenIdMongo)
+ }
+
+ // Duplicated the addMetadata Queue to make it possible to set the Worker config seperate from the actual function
+ exports.addMetadataPeriodic = async (tokenIdMongo) => {
+  await metadataQueuePeriodic.add(nanoid(), tokenIdMongo)
+ }
 
 exports.generateRarity = async (collectionAddress) => {
   await rarityQueue.remove(collectionAddress)
