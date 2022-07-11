@@ -3,6 +3,13 @@ const { createAdapter } = require("@socket.io/redis-adapter")
 const Redis = require("ioredis")
 const config = require("../config")
 
+
+// Models
+const UserMessageKey = require("../models/UserMessageKey")
+
+// Middleware
+const { extractSocketUser } = require("../middleware/VerifySignature")
+
 module.exports = (server) => {
   const io = new Server(server, {
     cors: {
@@ -18,7 +25,14 @@ module.exports = (server) => {
 
   io.adapter(createAdapter(pubClient, subClient));
 
-  io.on('connection', (socket) => {
+  io.on('connection', async (socket) => {
+    const userAddress = await extractSocketUser(socket.handshake.auth.token)
+    
+    if (userAddress) {
+      const keys = await UserMessageKey.findOne({ userAddress })
+      socket.emit('keys', keys)
+    }
+
     console.log(socket.id, 'connected')
   })
 }

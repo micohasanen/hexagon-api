@@ -135,15 +135,21 @@ exports.verifyBid = async (req, res, next) => {
   }
 }
 
+function verifyToken (token) {
+  if (!token) return Promise.reject('Unauthorized.')
+  token = token.replace('Bearer ', '')
+
+  const { address, body } = Web3Token.verify(token)
+  if (!address) return Promise.reject('Unauthorized.')
+
+  return Promise.resolve(address)
+}
+
 exports.extractUser = async (req, res, next) => {
   try {
     let token = req.headers.authorization || ''
-    if (!token) return res.status(401).json({ message: 'Unauthorized: No auth token set.' })
-    token = token.replace('Bearer ', '')
-  
-    const { address, body } = Web3Token.verify(token)
-    if (!address) return res.status(401).json({ message: 'Unauthorized.' })
-
+    
+    const address = await verifyToken(token)
     req.user = { address }
 
     next()
@@ -151,4 +157,9 @@ exports.extractUser = async (req, res, next) => {
     console.log(error)
     return res.status(401).json({ message: 'Unauthorized.' })
   }
+}
+
+exports.extractSocketUser = async (token) => {
+  const address = await verifyToken(token)
+  return address
 }
