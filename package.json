@@ -12,6 +12,7 @@
   "dependencies": {
     "@braintree/sanitize-url": "^6.0.0",
     "@pinata/sdk": "^1.1.25",
+    "@socket.io/redis-adapter": "^7.2.0",
     "agenda": "^4.3.0",
     "axios": "^0.27.2",
     "bullmq": "^1.85.2",
@@ -24,7 +25,6 @@
     "form-data": "^4.0.0",
     "helmet": "^5.1.0",
     "ioredis": "^5.0.6",
-    "jimp": "^0.16.1",
     "jsonwebtoken": "^8.5.1",
     "mongoose": "^6.3.5",
     "moralis": "^1.8.0",
@@ -34,6 +34,7 @@
     "parse-duration": "^1.0.2",
     "pm2": "^5.2.0",
     "rate-limiter-flexible": "^2.3.7",
+    "socket.io": "^4.5.1",
     "web3": "^1.7.3",
     "web3-token": "^0.2.9",
     "xss-clean": "^0.1.1"

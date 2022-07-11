@@ -1,5 +1,6 @@
 const router = require("express").Router()
 const Chat = require("../models/Chat")
+const ChatMessage = require("../models/ChatMessage")
 
 const { extractUser } = require("../middleware/VerifySignature")
 
@@ -7,7 +8,7 @@ const { extractUser } = require("../middleware/VerifySignature")
 router.get('/', [extractUser], async (req, res) => {
   try {
     const { address } = req.user
-    const chats = await Chat.find({ users: address }).sort('-updatedAt')
+    const chats = await Chat.find({ userIds: address }).populate('messages users').sort('-updatedAt')
     return res.status(200).json({ results: chats })
   } catch (error) {
     console.error(error)
@@ -22,18 +23,20 @@ router.post('/', [extractUser], async (req, res) => {
     const { address } = req.user
     if (!to?.length || !body) return res.status(400).json({ message: 'Missing required parameters.' })
 
-    const message = {
+    const message = new ChatMessage({
       body,
       timestamp: new Date(),
       sender: address
-    }
+    })
 
-    let chat;
+    await message.save()
+
+    let chat
 
     if (chatId) {
-      chat = await Chat.updateOne({ _id: chatId }, { $push: { messages: message }})
+      chat = await Chat.updateOne({ _id: chatId }, { $push: { messages: message._id }})
     } else {
-      chat = new Chat({ users: [...to, address], messages: message })
+      chat = new Chat({ userIds: [...to, address], messages: [message._id] })
       await chat.save()
     }
 

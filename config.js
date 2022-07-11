@@ -10,8 +10,10 @@ const redisConnection = {
 if (process.env.NODE_ENV === 'production') redisConnection.tls = {}
 
 module.exports = {
+  PORT: process.env.PORT || 5000,
   redisConnection,
   mongoConnection: `mongodb+srv://${process.env.MONGO_USER}:${process.env.MONGO_PASS}@${process.env.MONGO_URL}/${process.env.MONGO_DB_NAME}?retryWrites=true&w=majority`,
+  origins: ['http://localhost:3000', 'https://hexagon.market'],
   marketplaces: {
     '80001': process.env.MARKETPLACE_MUMBAI, 
     '137': process.env.MARKETPLACE_POLYGON,

@@ -1,32 +1,20 @@
 const { Schema, model } = require("mongoose")
 
 const ChatSchema = new Schema({
-  users: [{
+  name: String,
+  userIds: [{
     type: String,
     index: true,
     lowercase: true,
     trim: true
   }],
-  messages: [{
-    body: {
-      type: String,
-      required: true
-    },
-    timestamp: Date,
-    sender: {
-      type: String,
-      lowercase: true,
-      trim: true 
-    },
-    readTimes: [{
-      user: {
-        type: String, 
-        lowercase: true,
-        trim: true
-      },
-      timestamp: Date
-    }]
-  }]
-}, { timestamps: true })
+  messages: [{ type: Schema.Types.ObjectId, ref: 'ChatMessage' }]
+}, { timestamps: true, toObject: { virtuals: true }, toJSON: { virtuals: true } })
+
+ChatSchema.virtual('users', {
+  ref: 'User',
+  localField: 'userIds',
+  foreignField: 'address'
+})
 
 module.exports = new model('Chat', ChatSchema)

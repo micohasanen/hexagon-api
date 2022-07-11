@@ -1,8 +1,9 @@
 require("dotenv").config()
 const config = require("./config")
-const PORT = process.env.PORT || 5000
+const PORT = config.PORT
 
 const express = require("express")
+const http = require("http")
 const cors = require("cors")
 const mongoose = require("mongoose")
 const morgan = require("morgan")
@@ -66,7 +67,10 @@ app.use(function (err, req, res)
   res.sendStatus(err || 500);
 });
 
-app.listen(PORT, async () => {
+const server = http.createServer(app)
+require("./providers/Socket")(server)
+
+server.listen(PORT, async () => {
   // Setup Queue Workers
   require("./queue/Worker")()
 
