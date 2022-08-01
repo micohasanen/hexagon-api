@@ -106,7 +106,11 @@ const TokenSchema = mongoose.Schema({
       type: Number,
       default: 0
     }
-  }
+  },
+  burned: {
+    type: Boolean,
+    default: false
+  },
 }, { timestamps: true, toObject: { virtuals: true }, toJSON: { virtuals: true } })
 
 TokenSchema.pre('save', function (next) {

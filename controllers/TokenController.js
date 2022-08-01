@@ -329,6 +329,12 @@ exports.logTransfer = async (data) => {
     }
 
     if (token.contractType === 'ERC721') token.owner = newOwner
+    
+
+    if(token.contractType === 'ERC721' && newOwner == "0x0000000000000000000000000000000000000000") {
+      token.burned = true
+    }
+
     await token.save()
 
     if (!token.metadata || !token.imageHosted) addMetadata(token._id)
