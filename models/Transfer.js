@@ -77,7 +77,7 @@ TransferSchema.post('save', async function () {
   })
   
   for (const listing of listings) {
-    console.log(listing)
+   // console.log(listing)
     listing.active = false
     await listing.save()
   }
