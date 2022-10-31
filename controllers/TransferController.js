@@ -1,8 +1,9 @@
 const Transfer = require("../models/Transfer")
 const Collection = require("../models/Collection")
-// const { Moralis } = require("../utils/Moralis")
+ const { Moralis } = require("../utils/Moralis")
 const { addTransfer } = require("../queue/Queue")
 const Web3 = require("web3")
+const axios = require("axios")
 
 const crypto = require("crypto")
 
@@ -18,6 +19,80 @@ exports.syncTransfers = async (address) => {
   try {
 
   } catch (error) {
+    return Promise.reject(error)
+  }
+}
+
+exports.syncRecentCollectionTransfers = async (address) => {
+  try {
+  if (!address) throw new Error('Missing collection address.')
+
+  let allChains = [{chainName: "eth", chainId:"1"},
+  {chainName: "polygon", chainId:"137"},
+  {chainName: "avalanche", chainId:"43114"},
+  {chainName: "bsc", chainId:"56"}]
+
+  let yesterdayDate = new Date();
+  yesterdayDate.setDate(yesterdayDate.getDate() - 1); // Yesterday!
+  yesterdayDate = new Date(yesterdayDate).toISOString().slice(0, 10)
+
+ for(const chain of allChains) {
+  const blocks = await axios.get(
+    `${process.env.COVALENT_API_URL}/${chain.chainId}/block_v2/${yesterdayDate}/latest/`,
+    { 
+      params: {
+        key: process.env.COVALENT_API_KEY
+      }
+    })
+    chain.blockHeight = blocks.data.data.items[0].height
+ }
+
+  const collection = await Collection.findOne({ address }).exec()
+  if (!collection) throw new Error('No collection found.')
+
+  let total = 1000
+  const batchSize = 500
+  let cursor = ''
+
+  let chainBlockInfo = allChains.find( ({ chainName }) => chainName === collection.chain );
+
+  for (let i = 0; i <= total; i += batchSize) {
+  
+    const settings = {
+      address,
+      chain: collection.chain
+    }
+    if (cursor) settings.cursor = cursor
+
+    const transfers = await Moralis.Web3API.token.getContractNFTTransfers(settings)
+
+    cursor = transfers.cursor
+
+    total = parseInt(transfers.total)
+    console.log({ total, i })
+  
+    var k = 0;
+    for (const result of transfers.result) {
+      if(chainBlockInfo) {
+      if(Number(result.block_number) > Number(chainBlockInfo.blockHeight)) {
+        k = k + 1;
+        const formatted = { chain: collection.chain }
+        Object.entries(result).forEach(([key, val]) => {
+          formatted[snakeToCamel(key)] = val
+        })
+        
+        addTransfer(formatted)
+      } else {
+        i = total
+      }
+
+    } 
+    }
+  }
+
+  return Promise.resolve(true)   
+  } catch (error) {
+    console.error(error.message)
     return Promise.reject(error)
   }
 }
