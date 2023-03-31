@@ -8,7 +8,7 @@ const mongoose = require("mongoose")
 const morgan = require("morgan")
 const helmet = require("helmet")
 const xss = require("xss-clean")
-//const rateLimiter = require("./middleware/RateLimiter")
+const rateLimiter = require("./middleware/RateLimiter")
 const fileupload = require("express-fileupload")
 const { initAgenda } = require("./providers/Agenda")
 
@@ -24,7 +24,7 @@ app.use(express.urlencoded({ extended: true }))
 app.use(helmet())
 app.use(morgan('dev'))
 app.use(xss())
-//app.use(rateLimiter)
+app.use(rateLimiter)
 app.use(fileupload({
   limits: { fileSize: 15000000 } // 15MB Upload Limit
 }))
