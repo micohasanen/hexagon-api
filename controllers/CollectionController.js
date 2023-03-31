@@ -88,7 +88,7 @@ exports.syncTokensManuel = async (collection) => {
         contractType
       }
 
-      TokenController.addManuel(token)
+      await TokenController.addManuel(token)
     }
 
     if (!totalSupply) {
