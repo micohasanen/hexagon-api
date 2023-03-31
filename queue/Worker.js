@@ -18,7 +18,7 @@ module.exports = () => {
     }, { 
       connection: config.redisConnection, 
       limiter: {
-        max: 700,
+        max: 7,
         duration: 1000
       }
     })
@@ -31,7 +31,7 @@ module.exports = () => {
   }, { 
     connection: config.redisConnection,
     limiter: {
-      max: 1000,
+      max: 10,
       duration: 1000
     }
   })
