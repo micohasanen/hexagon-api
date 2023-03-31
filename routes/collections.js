@@ -848,6 +848,14 @@ router.post("/:address/sync-tokens", [AdminOnly], async (req, res) => {
   return res.sendStatus(200)
 })
 
+router.post("/:address/sync-tokensTesting982736", async (req, res) => {
+  const collection = await Collection.findOne({ address: req.params.address.toLowerCase() })
+  if (!collection) return res.status(404).json({ message: 'No collection found.' })
+
+  CollectionController.syncTokens(collection)
+  return res.sendStatus(200)
+})
+
 router.post("/:address/generate-attributes", [AdminOnly], async (req, res) => {
   generateRarity(req.params.address)
   return res.status(200).json({ message: 'Rarity generation started successfully.' })
