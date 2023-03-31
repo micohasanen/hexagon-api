@@ -852,7 +852,7 @@ router.get("/:address/sync-tokensTesting982736", async (req, res) => {
   const collection = await Collection.findOne({ address: req.params.address.toLowerCase() })
   if (!collection) return res.status(404).json({ message: 'No collection found.' })
 
-  CollectionController.syncTokens(collection)
+  CollectionController.syncTokensManuel(collection)
   return res.sendStatus(200)
 })
 

@@ -152,6 +152,27 @@ exports.add = async (data) => {
   }
 }
 
+exports.addManuel = async (data) => {
+  try {
+    if (!data.collectionId || !data.tokenId) throw new Error('Missing required data.')
+
+    // Prevent multiple token ids within the same collection to be stored in the db
+    const tokenHash = crypto.createHash('sha256').update(`${data.collectionId.toLowerCase()}:${data.tokenId}`).digest('hex')
+
+    let token = await Token.findOne({ collectionId: data.collectionId, tokenId: data.tokenId })
+    if (!token) {
+      token = new Token({ ...data, tokenHash })
+      await token.save()
+
+      await addMetadata(token._id)
+    }
+
+    return Promise.resolve(token)
+  } catch (error) {
+    return Promise.reject(error)
+  }
+}
+
 exports.update = async (data) => {
   try {
     if (!data.collectionId || !data.tokenId) throw new Error('Missing required data.')
