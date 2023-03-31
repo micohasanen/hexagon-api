@@ -161,7 +161,9 @@ exports.addManuel = async (data) => {
 
     let token = await Token.findOne({ collectionId: data.collectionId, tokenId: data.tokenId })
     if (!token) {
+   
       token = new Token({ ...data, tokenHash })
+      console.log(token)
       await token.save()
 
       await addMetadata(token._id)
