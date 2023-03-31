@@ -6,7 +6,7 @@ const { RateLimiterRedis } = require("rate-limiter-flexible")
 const rateLimiter = new RateLimiterRedis({
   storeClient: redis,
   keyPrefix: 'ratelimit',
-  points: 6, // 6 requests
+  points: 6000, // 6 requests
   duration: 1, // per 1 second by IP
 });
 
